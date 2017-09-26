@@ -31,7 +31,7 @@ public interface BlockStrategy {
      * is advised when generating your own implementations.
      *
      * @param sleepTime the computed sleep duration in milliseconds
-     * @throws InterruptedException
+     * @throws InterruptedException If the calling thread is interrupted
      */
     void block(long sleepTime) throws InterruptedException;
 }
