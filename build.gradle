@@ -1,21 +1,38 @@
+/*
+ * Copyright 2012-2015 Ray Holder
+ * Modifications copyright 2017 Robert Huffman
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import org.gradle.api.artifacts.maven.MavenDeployment
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Settings
 ext {
-    project_group = 'com.github.rholder'
-    project_version = '2.0.0'
+    project_group = 'tech.huffman.re-retrying'
+    project_version = '3.0.0-SNAPSHOT'
     project_jdk = '1.6'
     project_pom = {
-        name 'guava-retrying'
+        name 're-retrying'
         packaging 'jar'
-        description "This is a small extension to Google's Guava library to allow for the creation of configurable retrying strategies for an arbitrary function call, such as something that talks to a remote service with flaky uptime."
-        url 'http://rholder.github.com'
+        description 'A library to create configurable retrying strategies for an arbitrary function call, such as a method that connects to a remote service with flaky uptime.'
+        url 'https://github.com/rhuffman/re-retrying'
 
         scm {
-            url 'scm:git@github.com:rholder/guava-retrying.git'
-            connection 'scm:git@github.com:rholder/guava-retrying.git'
-            developerConnection 'scm:git@github.com:rholder/guava-retrying.git'
+            url 'scm:git@github.com:rhuffman/re-retrying.git'
+            connection 'scm:git@github.com:rhuffman/re-retrying.git'
+            developerConnection 'scm:git@github.com:rhuffman/re-retrying.git'
         }
 
         licenses {
@@ -28,8 +45,8 @@ ext {
 
         developers {
             developer {
-                id 'rholder'
-                name 'Ray Holder'
+                id 'rhuffman'
+                name 'Robert Huffman'
             }
         }
     }
@@ -133,60 +150,25 @@ artifacts {
     archives sourcesJar
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Publishing
-
-def promptPasswords() {
-    def console = System.console()
-    if (console == null) {
-        throw new RuntimeException("Console is not available. Try running from a terminal or with --no-daemon")
-    }
-
-    def sonatypeOssPassword = console.readPassword("\nEnter Sonatype password: ")
-    sonatypeOssPassword = new String(sonatypeOssPassword)
-    if (sonatypeOssPassword.size() <= 0) {
-        throw new InvalidUserDataException("Empty Sonatype password")
-    }
-
-    def signingKeyPassword = console.readPassword("\nEnter signing key password: ")
-    signingKeyPassword = new String(signingKeyPassword)
-    if (signingKeyPassword.size() <= 0) {
-        throw new InvalidUserDataException("Empty signing key password")
-    }
-
-    // set passwords globally for access elsewhere
-    allprojects { ext."signing.password" = signingKeyPassword }
-    allprojects { ext."sonatypePassword" = sonatypeOssPassword }
-
-}
-
-if(isReleaseVersion && gradle.startParameter.taskNames.contains("uploadArchives")) {
-    signing {
-        sign configurations.archives
-    }
-} else {
-    task signArchives {
-        // do nothing
-    }
+signing {
+    required { isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives") }
+    sign configurations.archives
 }
 
 uploadArchives {
     repositories {
-        if (gradle.startParameter.taskNames.contains("uploadArchives")) {
-            mavenDeployer {
-                beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+        mavenDeployer {
+            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
 
-                // for snapshots https://oss.sonatype.org/content/repositories/snapshots
-                // for staging/release https://oss.sonatype.org/service/local/staging/deploy/maven2
-                repository(
-                        url: 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
-                ) {
-                    promptPasswords()
-                    authentication(userName: sonatypeUsername, password: sonatypePassword)
-                }
-
-                pom.project project_pom
+            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                authentication(userName: sonatypeUsername, password: sonatypePassword)
             }
+
+            snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
+                authentication(userName: sonatypeUsername, password: sonatypePassword)
+            }
+
+            pom.project project_pom
         }
     }
 }
