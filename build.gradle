@@ -3,8 +3,8 @@ import org.gradle.api.artifacts.maven.MavenDeployment
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Settings
 ext {
-    project_group = 'tech.rhuffman.re-retrying'
-    project_version = '3.0.0'
+    project_group = 'tech.huffman.re-retrying'
+    project_version = '3.0.0-SNAPSHOT'
     project_jdk = '1.6'
     project_pom = {
         name 're-retrying'
@@ -133,60 +133,25 @@ artifacts {
     archives sourcesJar
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Publishing
-
-def promptPasswords() {
-    def console = System.console()
-    if (console == null) {
-        throw new RuntimeException("Console is not available. Try running from a terminal or with --no-daemon")
-    }
-
-    def sonatypeOssPassword = console.readPassword("\nEnter Sonatype password: ")
-    sonatypeOssPassword = new String(sonatypeOssPassword)
-    if (sonatypeOssPassword.size() <= 0) {
-        throw new InvalidUserDataException("Empty Sonatype password")
-    }
-
-    def signingKeyPassword = console.readPassword("\nEnter signing key password: ")
-    signingKeyPassword = new String(signingKeyPassword)
-    if (signingKeyPassword.size() <= 0) {
-        throw new InvalidUserDataException("Empty signing key password")
-    }
-
-    // set passwords globally for access elsewhere
-    allprojects { ext."signing.password" = signingKeyPassword }
-    allprojects { ext."sonatypePassword" = sonatypeOssPassword }
-
-}
-
-if (isReleaseVersion && gradle.startParameter.taskNames.contains("uploadArchives")) {
-    signing {
-        sign configurations.archives
-    }
-} else {
-    task signArchives {
-        // do nothing
-    }
+signing {
+    required { isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives") }
+    sign configurations.archives
 }
 
 uploadArchives {
     repositories {
-        if (gradle.startParameter.taskNames.contains("uploadArchives")) {
-            mavenDeployer {
-                beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+        mavenDeployer {
+            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
 
-                // for snapshots https://oss.sonatype.org/content/repositories/snapshots
-                // for staging/release https://oss.sonatype.org/service/local/staging/deploy/maven2
-                repository(
-                        url: 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
-                ) {
-                    promptPasswords()
-                    authentication(userName: sonatypeUsername, password: sonatypePassword)
-                }
-
-                pom.project project_pom
+            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                authentication(userName: sonatypeUsername, password: sonatypePassword)
             }
+
+            snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
+                authentication(userName: sonatypeUsername, password: sonatypePassword)
+            }
+
+            pom.project project_pom
         }
     }
 }
