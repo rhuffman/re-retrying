@@ -17,6 +17,7 @@
 
 import org.gradle.api.artifacts.maven.MavenDeployment
 
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Settings
 ext {
@@ -90,16 +91,6 @@ apply plugin: 'idea'
 apply plugin: 'maven'
 apply plugin: 'signing'
 
-// For all Java compilation tasks, set the bootstrap classpath so we use
-// the correct classes at compile time even if we are using a Java compiler
-// that is a different version from that target compatibility. If JAVA_HOME
-// is not set the build will fail. It is easiest to set JAVA_HOME in
-// $HOME/.gradle/gradle.properties, but you can also set it on the command line
-String bootClasspathStr = "${JAVA_HOME}/jre/lib/rt.jar"
-project.tasks.withType(AbstractCompile, { ac ->
-    ac.options.bootClasspath = bootClasspathStr
-})
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Dependencies
 
@@ -160,12 +151,15 @@ uploadArchives {
         mavenDeployer {
             beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
 
+            def sonatypeUser = getProperty('sonatypeUsername', 'SONATYPE_USERNAME_IS_NOT_SET')
+            def sonatypePass = getProperty('sonatypePassword', 'SONATYPE_PASSWORD_IS_NOT_SET')
+
             repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-                authentication(userName: sonatypeUsername, password: sonatypePassword)
+                authentication(userName: sonatypeUser, password: sonatypePass)
             }
 
             snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
-                authentication(userName: sonatypeUsername, password: sonatypePassword)
+                authentication(userName: sonatypeUser, password: sonatypePass)
             }
 
             pom.project project_pom
@@ -179,6 +173,10 @@ uploadArchives {
 // enable Gradle Wrapper support for bootstrapping with specific version
 task wrapper(type: Wrapper) {
     gradleVersion = '4.2'
+}
+
+String getProperty(String name, String defaultValue) {
+    project.hasProperty(name) ? project.getProperty(name) : defaultValue
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
