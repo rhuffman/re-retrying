@@ -18,9 +18,9 @@
 ## What is this?
 The re-retrying module provides a general purpose method for retrying arbitrary Java code with specific stop, retry, and exception handling capabilities that are enhanced by Guava's predicate matching.
 
-This is a fork of the [guava-retrying](https://github.com/rholder/guava-retrying) library by Ryan Holder (RH), which is itself a fork of the [RetryerBuilder](http://code.google.com/p/guava-libraries/issues/detail?id=490) by Jean-Baptiste Nizet (JB). (RH) added a Gradle build for pushing it up to Maven Central, and exponential and Fibonacci backoff [WaitStrategies](http://rholder.github.io/guava-retrying/javadoc/2.0.0/com/github/rholder/retry/WaitStrategies.html) that might be useful for situations where more well-behaved service polling is preferred.
+This is a fork of the [guava-retrying](https://github.com/rholder/guava-retrying) library by Ryan Holder (rholder), which is itself a fork of the [RetryerBuilder](http://code.google.com/p/guava-libraries/issues/detail?id=490) by Jean-Baptiste Nizet (JB). The guava-retrying project added a Gradle build for pushing it up to Maven Central, and exponential and Fibonacci backoff [WaitStrategies](http://rholder.github.io/guava-retrying/javadoc/2.0.0/com/github/rholder/retry/WaitStrategies.html) that might be useful for situations where more well-behaved service polling is preferred.
 
-Why was this fork necessary? See [this project's Wiki](https://github.com/rhuffman/re-retrying/wiki#why-fork).
+Why was this fork necessary? The primary reason was to make it compatible with projects using later versions of Guava. See [this project's Wiki](https://github.com/rhuffman/re-retrying/wiki#why-fork) for more details.
 
 ## Maven
 ```xml
@@ -133,6 +133,6 @@ The re-retrying module is released under version 2.0 of the [Apache License](htt
 * Chad (voiceinsideyou)
 * Kevin Conaway (kevinconaway)
 * Alberto Scotto (alb-i986)
-* Ryan Holder
-* Robert Huffman
+* Ryan Holder(rholder)
+* Robert Huffman (rhuffman)
 
