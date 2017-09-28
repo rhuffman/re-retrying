@@ -16,7 +16,7 @@
 -->
 
 [![Build Status](https://travis-ci.org/rhuffman/re-retrying.svg?branch=master)](https://travis-ci.org/rhuffman/re-retrying)
-[![Latest Version](http://img.shields.io/badge/latest-2.0.0-brightgreen.svg)](https://github.com/rholder/guava-retrying/releases/tag/v2.0.0)
+[![Latest Version](http://img.shields.io/badge/latest-3.0.0-brightgreen.svg)](https://github.com/rhuffman/re-retrying/releases/tag/v3.0.0-rc.1)
 [![License](http://img.shields.io/badge/license-apache%202-brightgreen.svg)](https://github.com/rhuffman/re-retrying/blob/master/LICENSE)
 
 ## What is this?
