@@ -5,6 +5,7 @@ out
 *.iml
 *.ipr
 *.iws
+fileTemplates
 gradle.properties
 .DS_Store
 classes/
