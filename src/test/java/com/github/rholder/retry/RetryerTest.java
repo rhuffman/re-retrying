@@ -112,6 +112,23 @@ public class RetryerTest {
         assertEquals(2, callable.invocations);
     }
 
+    @Test
+    public void testRetryOnSubclassOfCheckedException() throws Exception {
+        Retryer<Void> retryer = RetryerBuilder.<Void>newBuilder()
+                .withStopStrategy(StopStrategies.stopAfterAttempt(2))
+                .retryIfExceptionOfType(Exception.class)
+                .build();
+        NullPointerException toThrow = new NullPointerException("oops");
+        ExceptionThrowingCallable callable = new ExceptionThrowingCallable(toThrow, 2);
+        try {
+            retryer.call(callable);
+        } catch (ExecutionException e) {
+            assertSame(toThrow, e.getCause());
+        }
+        assertEquals(2, callable.invocations);
+    }
+
+
     private class ErrorThrowingCallable implements Callable<Void> {
 
         private final Error error;
