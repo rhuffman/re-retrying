@@ -19,7 +19,6 @@ package com.github.rholder.retry;
 
 import com.google.common.annotations.Beta;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
@@ -28,6 +27,7 @@ import java.util.Collection;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
 /**
  * A retryer, which executes a call, and retries it until it succeeds, or
@@ -65,7 +65,7 @@ public final class Retryer<V> {
                    @Nonnull WaitStrategy waitStrategy,
                    @Nonnull Predicate<Attempt<V>> rejectionPredicate) {
 
-        this(AttemptTimeLimiters.<V>noTimeLimit(), stopStrategy, waitStrategy, BlockStrategies.threadSleepStrategy(), rejectionPredicate);
+        this(AttemptTimeLimiters.noTimeLimit(), stopStrategy, waitStrategy, BlockStrategies.threadSleepStrategy(), rejectionPredicate);
     }
 
     /**
@@ -101,7 +101,7 @@ public final class Retryer<V> {
                    @Nonnull WaitStrategy waitStrategy,
                    @Nonnull BlockStrategy blockStrategy,
                    @Nonnull Predicate<Attempt<V>> rejectionPredicate) {
-        this(attemptTimeLimiter, stopStrategy, waitStrategy, blockStrategy, rejectionPredicate, new ArrayList<RetryListener>());
+        this(attemptTimeLimiter, stopStrategy, waitStrategy, blockStrategy, rejectionPredicate, new ArrayList<>());
     }
 
     /**
@@ -159,16 +159,16 @@ public final class Retryer<V> {
             Attempt<V> attempt;
             try {
                 V result = attemptTimeLimiter.call(callable);
-                attempt = new ResultAttempt<V>(result, attemptNumber, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime));
+                attempt = new ResultAttempt<>(result, attemptNumber, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime));
             } catch (Throwable t) {
-                attempt = new ExceptionAttempt<V>(t, attemptNumber, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime));
+                attempt = new ExceptionAttempt<>(t, attemptNumber, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime));
             }
 
             for (RetryListener listener : listeners) {
                 listener.onRetry(attempt);
             }
 
-            if (!rejectionPredicate.apply(attempt)) {
+            if (!rejectionPredicate.test(attempt)) {
                 return attempt.get();
             }
             if (stopStrategy.shouldStop(attempt)) {
@@ -193,8 +193,9 @@ public final class Retryer<V> {
      * @param callable the callable to wrap
      * @return a {@link RetryerCallable} that behaves like the given {@link Callable} with retry behavior defined by this {@link Retryer}
      */
+    @SuppressWarnings("WeakerAccess")
     public RetryerCallable<V> wrap(Callable<V> callable) {
-        return new RetryerCallable<V>(this, callable);
+        return new RetryerCallable<>(this, callable);
     }
 
     @Immutable
@@ -203,7 +204,7 @@ public final class Retryer<V> {
         private final long attemptNumber;
         private final long delaySinceFirstAttempt;
 
-        public ResultAttempt(R result, long attemptNumber, long delaySinceFirstAttempt) {
+        ResultAttempt(R result, long attemptNumber, long delaySinceFirstAttempt) {
             this.result = result;
             this.attemptNumber = attemptNumber;
             this.delaySinceFirstAttempt = delaySinceFirstAttempt;
@@ -251,7 +252,7 @@ public final class Retryer<V> {
         private final long attemptNumber;
         private final long delaySinceFirstAttempt;
 
-        public ExceptionAttempt(Throwable cause, long attemptNumber, long delaySinceFirstAttempt) {
+        ExceptionAttempt(Throwable cause, long attemptNumber, long delaySinceFirstAttempt) {
             this.e = new ExecutionException(cause);
             this.attemptNumber = attemptNumber;
             this.delaySinceFirstAttempt = delaySinceFirstAttempt;

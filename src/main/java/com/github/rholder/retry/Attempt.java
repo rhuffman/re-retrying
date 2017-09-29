@@ -1,5 +1,6 @@
 /*
  * Copyright 2012-2015 Ray Holder
+ * Modifications copyright 2017 Robert Huffman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,7 +35,7 @@ public interface Attempt<V> {
      * @throws ExecutionException if an exception was thrown by the attempt. The thrown
      *                            exception is set as the cause of the ExecutionException
      */
-    public V get() throws ExecutionException;
+    V get() throws ExecutionException;
 
     /**
      * Tells if the call returned a result or not
@@ -42,7 +43,7 @@ public interface Attempt<V> {
      * @return <code>true</code> if the call returned a result, <code>false</code>
      *         if it threw an exception
      */
-    public boolean hasResult();
+    boolean hasResult();
 
     /**
      * Tells if the call threw an exception or not
@@ -50,7 +51,7 @@ public interface Attempt<V> {
      * @return <code>true</code> if the call threw an exception, <code>false</code>
      *         if it returned a result
      */
-    public boolean hasException();
+    boolean hasException();
 
     /**
      * Gets the result of the call
@@ -59,7 +60,7 @@ public interface Attempt<V> {
      * @throws IllegalStateException if the call didn't return a result, but threw an exception,
      *                               as indicated by {@link #hasResult()}
      */
-    public V getResult() throws IllegalStateException;
+    V getResult() throws IllegalStateException;
 
     /**
      * Gets the exception thrown by the call
@@ -68,19 +69,19 @@ public interface Attempt<V> {
      * @throws IllegalStateException if the call didn't throw an exception,
      *                               as indicated by {@link #hasException()}
      */
-    public Throwable getExceptionCause() throws IllegalStateException;
+    Throwable getExceptionCause() throws IllegalStateException;
 
     /**
      * The number, starting from 1, of this attempt.
      *
      * @return the attempt number
      */
-    public long getAttemptNumber();
+    long getAttemptNumber();
 
     /**
      * The delay since the start of the first attempt, in milliseconds.
      *
      * @return the delay since the start of the first attempt, in milliseconds
      */
-    public long getDelaySinceFirstAttempt();
+    long getDelaySinceFirstAttempt();
 }

@@ -41,6 +41,7 @@ public final class StopStrategies {
      *
      * @return a stop strategy which never stops
      */
+    @SuppressWarnings("WeakerAccess")
     public static StopStrategy neverStop() {
         return NEVER_STOP;
     }
@@ -51,6 +52,7 @@ public final class StopStrategies {
      * @param attemptNumber the number of failed attempts before stopping
      * @return a stop strategy which stops after {@code attemptNumber} attempts
      */
+    @SuppressWarnings("WeakerAccess")
     public static StopStrategy stopAfterAttempt(int attemptNumber) {
         return new StopAfterAttemptStrategy(attemptNumber);
     }
@@ -82,6 +84,7 @@ public final class StopStrategies {
      * @param timeUnit the unit of the duration
      * @return a stop strategy which stops after {@code delayInMillis} time in milliseconds
      */
+    @SuppressWarnings("WeakerAccess")
     public static StopStrategy stopAfterDelay(long duration, @Nonnull TimeUnit timeUnit) {
         Preconditions.checkNotNull(timeUnit, "The time unit may not be null");
         return new StopAfterDelayStrategy(timeUnit.toMillis(duration));
@@ -99,7 +102,7 @@ public final class StopStrategies {
     private static final class StopAfterAttemptStrategy implements StopStrategy {
         private final int maxAttemptNumber;
 
-        public StopAfterAttemptStrategy(int maxAttemptNumber) {
+        StopAfterAttemptStrategy(int maxAttemptNumber) {
             Preconditions.checkArgument(maxAttemptNumber >= 1, "maxAttemptNumber must be >= 1 but is %d", maxAttemptNumber);
             this.maxAttemptNumber = maxAttemptNumber;
         }
@@ -114,7 +117,7 @@ public final class StopStrategies {
     private static final class StopAfterDelayStrategy implements StopStrategy {
         private final long maxDelay;
 
-        public StopAfterDelayStrategy(long maxDelay) {
+        StopAfterDelayStrategy(long maxDelay) {
             Preconditions.checkArgument(maxDelay >= 0L, "maxDelay must be >= 0 but is %d", maxDelay);
             this.maxDelay = maxDelay;
         }

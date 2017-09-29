@@ -33,6 +33,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author Jason Dunkelberger (dirkraft)
  */
+@SuppressWarnings("WeakerAccess")
 public class AttemptTimeLimiters {
 
     private AttemptTimeLimiters() {
@@ -43,7 +44,7 @@ public class AttemptTimeLimiters {
      * @return an {@link AttemptTimeLimiter} impl which has no time limit
      */
     public static <V> AttemptTimeLimiter<V> noTimeLimit() {
-        return new NoAttemptTimeLimit<V>();
+        return new NoAttemptTimeLimit<>();
     }
 
     /**
@@ -58,7 +59,7 @@ public class AttemptTimeLimiters {
      */
     public static <V> AttemptTimeLimiter<V> fixedTimeLimit(long duration, @Nonnull TimeUnit timeUnit) {
         Preconditions.checkNotNull(timeUnit);
-        return new FixedAttemptTimeLimit<V>(duration, timeUnit);
+        return new FixedAttemptTimeLimit<>(duration, timeUnit);
     }
 
     /**
@@ -70,7 +71,7 @@ public class AttemptTimeLimiters {
      */
     public static <V> AttemptTimeLimiter<V> fixedTimeLimit(long duration, @Nonnull TimeUnit timeUnit, @Nonnull ExecutorService executorService) {
         Preconditions.checkNotNull(timeUnit);
-        return new FixedAttemptTimeLimit<V>(duration, timeUnit, executorService);
+        return new FixedAttemptTimeLimit<>(duration, timeUnit, executorService);
     }
 
     @Immutable
@@ -88,11 +89,11 @@ public class AttemptTimeLimiters {
         private final long duration;
         private final TimeUnit timeUnit;
 
-        public FixedAttemptTimeLimit(long duration, @Nonnull TimeUnit timeUnit) {
+        FixedAttemptTimeLimit(long duration, @Nonnull TimeUnit timeUnit) {
             this(duration, timeUnit, Executors.newCachedThreadPool());
         }
 
-        public FixedAttemptTimeLimit(long duration, @Nonnull TimeUnit timeUnit, @Nonnull ExecutorService executorService) {
+        FixedAttemptTimeLimit(long duration, @Nonnull TimeUnit timeUnit, @Nonnull ExecutorService executorService) {
             this(SimpleTimeLimiter.create(executorService), duration, timeUnit);
         }
 
