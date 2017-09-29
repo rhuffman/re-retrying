@@ -402,32 +402,6 @@ public class RetryerBuilderTest {
     }
 
     @Test
-    public void testWhetherBuilderFailsForNullStopStrategy() {
-        try {
-            //noinspection ConstantConditions
-            RetryerBuilder.<Void>newBuilder()
-                    .withStopStrategy(null)
-                    .build();
-            fail("Exepcted to fail for null stop strategy");
-        } catch (NullPointerException exception) {
-            assertTrue(exception.getMessage().contains("stopStrategy may not be null"));
-        }
-    }
-
-    @Test
-    public void testWhetherBuilderFailsForNullWaitStrategy() {
-        try {
-            //noinspection ConstantConditions
-            RetryerBuilder.<Void>newBuilder()
-                    .withWaitStrategy(null)
-                    .build();
-            fail("Exepcted to fail for null wait strategy");
-        } catch (NullPointerException exception) {
-            assertTrue(exception.getMessage().contains("waitStrategy may not be null"));
-        }
-    }
-
-    @Test
     public void testWhetherBuilderFailsForNullWaitStrategyWithCompositeStrategies() {
         try {
             RetryerBuilder.<Void>newBuilder()
