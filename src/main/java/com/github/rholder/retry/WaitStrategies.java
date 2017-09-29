@@ -17,7 +17,6 @@
 
 package com.github.rholder.retry;
 
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
@@ -26,12 +25,14 @@ import javax.annotation.concurrent.Immutable;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 /**
  * Factory class for instances of {@link WaitStrategy}.
  *
  * @author JB
  */
+@SuppressWarnings("WeakerAccess")
 public final class WaitStrategies {
 
   private static final WaitStrategy NO_WAIT_STRATEGY = new FixedWaitStrategy(0L);
@@ -214,7 +215,7 @@ public final class WaitStrategies {
                                                                  @Nonnull Function<T, Long> function) {
     Preconditions.checkNotNull(exceptionClass, "exceptionClass may not be null");
     Preconditions.checkNotNull(function, "function may not be null");
-    return new ExceptionWaitStrategy<T>(exceptionClass, function);
+    return new ExceptionWaitStrategy<>(exceptionClass, function);
   }
 
   /**
@@ -235,7 +236,7 @@ public final class WaitStrategies {
   private static final class FixedWaitStrategy implements WaitStrategy {
     private final long sleepTime;
 
-    public FixedWaitStrategy(long sleepTime) {
+    FixedWaitStrategy(long sleepTime) {
       Preconditions.checkArgument(sleepTime >= 0L, "sleepTime must be >= 0 but is %d", sleepTime);
       this.sleepTime = sleepTime;
     }
@@ -252,7 +253,7 @@ public final class WaitStrategies {
     private final long minimum;
     private final long maximum;
 
-    public RandomWaitStrategy(long minimum, long maximum) {
+    RandomWaitStrategy(long minimum, long maximum) {
       Preconditions.checkArgument(minimum >= 0, "minimum must be >= 0 but is %d", minimum);
       Preconditions.checkArgument(maximum > minimum, "maximum must be > minimum but maximum is %d and minimum is", maximum, minimum);
 
@@ -272,8 +273,8 @@ public final class WaitStrategies {
     private final long initialSleepTime;
     private final long increment;
 
-    public IncrementingWaitStrategy(long initialSleepTime,
-                                    long increment) {
+    IncrementingWaitStrategy(long initialSleepTime,
+                             long increment) {
       Preconditions.checkArgument(initialSleepTime >= 0L, "initialSleepTime must be >= 0 but is %d", initialSleepTime);
       this.initialSleepTime = initialSleepTime;
       this.increment = increment;
@@ -291,8 +292,8 @@ public final class WaitStrategies {
     private final long multiplier;
     private final long maximumWait;
 
-    public ExponentialWaitStrategy(long multiplier,
-                                   long maximumWait) {
+    ExponentialWaitStrategy(long multiplier,
+                            long maximumWait) {
       Preconditions.checkArgument(multiplier > 0L, "multiplier must be > 0 but is %d", multiplier);
       Preconditions.checkArgument(maximumWait >= 0L, "maximumWait must be >= 0 but is %d", maximumWait);
       Preconditions.checkArgument(multiplier < maximumWait, "multiplier must be < maximumWait but is %d", multiplier);
@@ -316,7 +317,7 @@ public final class WaitStrategies {
     private final long multiplier;
     private final long maximumWait;
 
-    public FibonacciWaitStrategy(long multiplier, long maximumWait) {
+    FibonacciWaitStrategy(long multiplier, long maximumWait) {
       Preconditions.checkArgument(multiplier > 0L, "multiplier must be > 0 but is %d", multiplier);
       Preconditions.checkArgument(maximumWait >= 0L, "maximumWait must be >= 0 but is %d", maximumWait);
       Preconditions.checkArgument(multiplier < maximumWait, "multiplier must be < maximumWait but is %d", multiplier);
@@ -358,7 +359,7 @@ public final class WaitStrategies {
   private static final class CompositeWaitStrategy implements WaitStrategy {
     private final List<WaitStrategy> waitStrategies;
 
-    public CompositeWaitStrategy(List<WaitStrategy> waitStrategies) {
+    CompositeWaitStrategy(List<WaitStrategy> waitStrategies) {
       Preconditions.checkState(!waitStrategies.isEmpty(), "Need at least one wait strategy");
       this.waitStrategies = waitStrategies;
     }
@@ -378,7 +379,7 @@ public final class WaitStrategies {
     private final Class<T> exceptionClass;
     private final Function<T, Long> function;
 
-    public ExceptionWaitStrategy(@Nonnull Class<T> exceptionClass, @Nonnull Function<T, Long> function) {
+    ExceptionWaitStrategy(@Nonnull Class<T> exceptionClass, @Nonnull Function<T, Long> function) {
       this.exceptionClass = exceptionClass;
       this.function = function;
     }

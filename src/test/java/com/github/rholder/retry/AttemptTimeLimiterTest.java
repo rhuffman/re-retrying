@@ -30,8 +30,8 @@ import java.util.concurrent.TimeoutException;
  */
 public class AttemptTimeLimiterTest {
 
-    Retryer<Void> r = RetryerBuilder.<Void>newBuilder()
-            .withAttemptTimeLimiter(AttemptTimeLimiters.<Void>fixedTimeLimit(1, TimeUnit.SECONDS))
+    private final Retryer<Void> r = RetryerBuilder.<Void>newBuilder()
+            .withAttemptTimeLimiter(AttemptTimeLimiters.fixedTimeLimit(1, TimeUnit.SECONDS))
             .build();
 
     @Test

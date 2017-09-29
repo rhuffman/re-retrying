@@ -1,5 +1,6 @@
 /*
  * Copyright 2012-2015 Ray Holder
+ * Modifications copyright 2017 Robert Huffman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +22,7 @@ import javax.annotation.concurrent.Immutable;
 /**
  * Factory class for {@link BlockStrategy} instances.
  */
+@SuppressWarnings("WeakerAccess")
 public final class BlockStrategies {
 
     private static final BlockStrategy THREAD_SLEEP_STRATEGY = new ThreadSleepStrategy();
