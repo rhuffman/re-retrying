@@ -1,5 +1,6 @@
 /*
  * Copyright 2012-2015 Ray Holder
+ * Modifications copyright 2017 Robert Huffman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +17,12 @@
 
 package com.github.rholder.retry;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Sets;
 import org.junit.Test;
 
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -155,7 +156,8 @@ public class WaitStrategiesTest {
 
     @Test
     public void testExceptionWait() {
-        WaitStrategy exceptionWait = WaitStrategies.exceptionWait(RuntimeException.class, zeroSleepFunction());
+        WaitStrategy exceptionWait = WaitStrategies.exceptionWait(
+                RuntimeException.class, zeroSleepFunction());
         assertEquals(0L, exceptionWait.computeSleepTime(failedAttempt(42, 7227)));
 
         WaitStrategy oneMinuteWait = WaitStrategies.exceptionWait(RuntimeException.class, oneMinuteSleepFunction());
@@ -165,48 +167,31 @@ public class WaitStrategiesTest {
         assertEquals(0L, noMatchRetryAfterWait.computeSleepTime(failedAttempt(42, 7227)));
 
         WaitStrategy retryAfterWait = WaitStrategies.exceptionWait(RetryAfterException.class, customSleepFunction());
-        assertEquals(29L, retryAfterWait.computeSleepTime(failedRetryAfterAttempt(42, 7227)));
+        Retryer.ExceptionAttempt<Boolean> failedAttempt = new Retryer.ExceptionAttempt<>(
+                new RetryAfterException(), 42L, 7227L);
+        assertEquals(29L, retryAfterWait.computeSleepTime(failedAttempt));
     }
 
-    public Attempt<Boolean> failedAttempt(long attemptNumber, long delaySinceFirstAttempt) {
-        return new Retryer.ExceptionAttempt<Boolean>(new RuntimeException(), attemptNumber, delaySinceFirstAttempt);
+    private Attempt<Boolean> failedAttempt(long attemptNumber, long delaySinceFirstAttempt) {
+        return new Retryer.ExceptionAttempt<>(new RuntimeException(), attemptNumber, delaySinceFirstAttempt);
     }
 
-    public Attempt<Boolean> failedRetryAfterAttempt(long attemptNumber, long delaySinceFirstAttempt) {
-        return new Retryer.ExceptionAttempt<Boolean>(new RetryAfterException(), attemptNumber, delaySinceFirstAttempt);
+    private Function<RuntimeException, Long> zeroSleepFunction() {
+        return input -> 0L;
     }
 
-    public Function<RuntimeException, Long> zeroSleepFunction() {
-        return new Function<RuntimeException, Long>() {
-            @Override
-            public Long apply(RuntimeException input) {
-                return 0L;
-            }
-        };
+    private Function<RuntimeException, Long> oneMinuteSleepFunction() {
+        return input -> 3600 * 1000L;
     }
 
-    public Function<RuntimeException, Long> oneMinuteSleepFunction() {
-        return new Function<RuntimeException, Long>() {
-            @Override
-            public Long apply(RuntimeException input) {
-                return 3600 * 1000L;
-            }
-        };
-    }
-
-    public Function<RetryAfterException, Long> customSleepFunction() {
-        return new Function<RetryAfterException, Long>() {
-            @Override
-            public Long apply(RetryAfterException input) {
-                return input.getRetryAfter();
-            }
-        };
+    private Function<RetryAfterException, Long> customSleepFunction() {
+        return RetryAfterException::getRetryAfter;
     }
 
     public class RetryAfterException extends RuntimeException {
         private final long retryAfter = 29L;
 
-        public long getRetryAfter() {
+        long getRetryAfter() {
             return retryAfter;
         }
     }

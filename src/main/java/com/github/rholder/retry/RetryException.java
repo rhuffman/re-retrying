@@ -1,5 +1,6 @@
 /*
  * Copyright 2012-2015 Ray Holder
+ * Modifications copyright 2017 Robert Huffman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +29,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  *
  * @author JB
  */
+@SuppressWarnings("WeakerAccess")
 @Immutable
 public final class RetryException extends Exception {
 
@@ -41,7 +43,7 @@ public final class RetryException extends Exception {
      * @param numberOfFailedAttempts times we've tried and failed
      * @param lastFailedAttempt      what happened the last time we failed
      */
-    public RetryException(int numberOfFailedAttempts, @Nonnull Attempt<?> lastFailedAttempt) {
+    RetryException(int numberOfFailedAttempts, @Nonnull Attempt<?> lastFailedAttempt) {
         this("Retrying failed to complete successfully after " + numberOfFailedAttempts + " attempts.", numberOfFailedAttempts, lastFailedAttempt);
     }
 
@@ -53,7 +55,7 @@ public final class RetryException extends Exception {
      * @param numberOfFailedAttempts times we've tried and failed
      * @param lastFailedAttempt      what happened the last time we failed
      */
-    public RetryException(String message, int numberOfFailedAttempts, Attempt<?> lastFailedAttempt) {
+    private RetryException(String message, int numberOfFailedAttempts, Attempt<?> lastFailedAttempt) {
         super(message, checkNotNull(lastFailedAttempt, "Last attempt was null").hasException() ? lastFailedAttempt.getExceptionCause() : null);
         this.numberOfFailedAttempts = numberOfFailedAttempts;
         this.lastFailedAttempt = lastFailedAttempt;

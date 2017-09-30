@@ -1,5 +1,6 @@
 /*
  * Copyright 2012-2015 Ray Holder
+ * Modifications copyright 2017 Robert Huffman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,13 +18,12 @@
 package com.github.rholder.retry;
 
 import com.github.rholder.retry.Retryer.RetryerCallable;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -31,11 +31,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 public class RetryerBuilderTest {
 
@@ -44,7 +40,7 @@ public class RetryerBuilderTest {
         Callable<Boolean> callable = notNullAfter5Attempts();
         Retryer<Boolean> retryer = RetryerBuilder.<Boolean>newBuilder()
                 .withWaitStrategy(WaitStrategies.fixedWait(50L, TimeUnit.MILLISECONDS))
-                .retryIfResult(Predicates.<Boolean>isNull())
+                .retryIfResult(Objects::isNull)
                 .build();
         long start = System.currentTimeMillis();
         boolean result = retryer.call(callable);
@@ -59,7 +55,7 @@ public class RetryerBuilderTest {
                 .withWaitStrategy(WaitStrategies.join(
                         WaitStrategies.fixedWait(50L, TimeUnit.MILLISECONDS),
                         WaitStrategies.fibonacciWait(10, Long.MAX_VALUE, TimeUnit.MILLISECONDS)))
-                .retryIfResult(Predicates.<Boolean>isNull())
+                .retryIfResult(Objects::isNull)
                 .build();
         long start = System.currentTimeMillis();
         boolean result = retryer.call(callable);
@@ -74,7 +70,7 @@ public class RetryerBuilderTest {
                 .withWaitStrategy(WaitStrategies.join(
                         WaitStrategies.incrementingWait(10L, TimeUnit.MILLISECONDS, 10L, TimeUnit.MILLISECONDS),
                         WaitStrategies.fibonacciWait(10, Long.MAX_VALUE, TimeUnit.MILLISECONDS)))
-                .retryIfResult(Predicates.<Boolean>isNull())
+                .retryIfResult(Objects::isNull)
                 .build();
         long start = System.currentTimeMillis();
         boolean result = retryer.call(callable);
@@ -102,7 +98,7 @@ public class RetryerBuilderTest {
         Callable<Boolean> callable = notNullAfter5Attempts();
         Retryer<Boolean> retryer = RetryerBuilder.<Boolean>newBuilder()
                 .withStopStrategy(StopStrategies.stopAfterAttempt(3))
-                .retryIfResult(Predicates.<Boolean>isNull())
+                .retryIfResult(Objects::isNull)
                 .build();
         try {
             retryer.call(callable);
@@ -116,16 +112,11 @@ public class RetryerBuilderTest {
     public void testWithBlockStrategy() throws ExecutionException, RetryException {
         Callable<Boolean> callable = notNullAfter5Attempts();
         final AtomicInteger counter = new AtomicInteger();
-        BlockStrategy blockStrategy = new BlockStrategy() {
-            @Override
-            public void block(long sleepTime) throws InterruptedException {
-                counter.incrementAndGet();
-            }
-        };
+        BlockStrategy blockStrategy = sleepTime -> counter.incrementAndGet();
 
         Retryer<Boolean> retryer = RetryerBuilder.<Boolean>newBuilder()
                 .withBlockStrategy(blockStrategy)
-                .retryIfResult(Predicates.<Boolean>isNull())
+                .retryIfResult(Objects::isNull)
                 .build();
         final int retryCount = 5;
         boolean result = retryer.call(callable);
@@ -271,12 +262,7 @@ public class RetryerBuilderTest {
     public void testRetryIfExceptionWithPredicate() throws RetryException, ExecutionException {
         Callable<Boolean> callable = noIOExceptionAfter5Attempts();
         Retryer<Boolean> retryer = RetryerBuilder.<Boolean>newBuilder()
-                .retryIfException(new Predicate<Throwable>() {
-                    @Override
-                    public boolean apply(Throwable t) {
-                        return t instanceof IOException;
-                    }
-                })
+                .retryIfException(t -> t instanceof IOException)
                 .build();
         assertTrue(retryer.call(callable));
 
@@ -290,12 +276,7 @@ public class RetryerBuilderTest {
 
         callable = noIOExceptionAfter5Attempts();
         retryer = RetryerBuilder.<Boolean>newBuilder()
-                .retryIfException(new Predicate<Throwable>() {
-                    @Override
-                    public boolean apply(Throwable t) {
-                        return t instanceof IOException;
-                    }
-                })
+                .retryIfException(t -> t instanceof IOException)
                 .withStopStrategy(StopStrategies.stopAfterAttempt(3))
                 .build();
         try {
@@ -313,13 +294,13 @@ public class RetryerBuilderTest {
     public void testRetryIfResult() throws ExecutionException, RetryException {
         Callable<Boolean> callable = notNullAfter5Attempts();
         Retryer<Boolean> retryer = RetryerBuilder.<Boolean>newBuilder()
-                .retryIfResult(Predicates.<Boolean>isNull())
+                .retryIfResult(Objects::isNull)
                 .build();
         assertTrue(retryer.call(callable));
 
         callable = notNullAfter5Attempts();
         retryer = RetryerBuilder.<Boolean>newBuilder()
-                .retryIfResult(Predicates.<Boolean>isNull())
+                .retryIfResult(Objects::isNull)
                 .withStopStrategy(StopStrategies.stopAfterAttempt(3))
                 .build();
         try {
@@ -337,7 +318,7 @@ public class RetryerBuilderTest {
     public void testMultipleRetryConditions() throws ExecutionException, RetryException {
         Callable<Boolean> callable = notNullResultOrIOExceptionOrRuntimeExceptionAfter5Attempts();
         Retryer<Boolean> retryer = RetryerBuilder.<Boolean>newBuilder()
-                .retryIfResult(Predicates.<Boolean>isNull())
+                .retryIfResult(Objects::isNull)
                 .retryIfExceptionOfType(IOException.class)
                 .retryIfRuntimeException()
                 .withStopStrategy(StopStrategies.stopAfterAttempt(3))
@@ -353,7 +334,7 @@ public class RetryerBuilderTest {
 
         callable = notNullResultOrIOExceptionOrRuntimeExceptionAfter5Attempts();
         retryer = RetryerBuilder.<Boolean>newBuilder()
-                .retryIfResult(Predicates.<Boolean>isNull())
+                .retryIfResult(Objects::isNull)
                 .retryIfExceptionOfType(IOException.class)
                 .retryIfRuntimeException()
                 .build();
@@ -385,24 +366,21 @@ public class RetryerBuilderTest {
     public void testInterruption() throws InterruptedException, ExecutionException {
         final AtomicBoolean result = new AtomicBoolean(false);
         final CountDownLatch latch = new CountDownLatch(1);
-        Runnable r = new Runnable() {
-            @Override
-            public void run() {
-                Retryer<Boolean> retryer = RetryerBuilder.<Boolean>newBuilder()
-                        .withWaitStrategy(WaitStrategies.fixedWait(1000L, TimeUnit.MILLISECONDS))
-                        .retryIfResult(Predicates.<Boolean>isNull())
-                        .build();
-                try {
-                    retryer.call(alwaysNull(latch));
-                    fail("RetryException expected");
-                } catch (RetryException e) {
-                    assertTrue(!e.getLastFailedAttempt().hasException());
-                    assertNull(e.getCause());
-                    assertTrue(Thread.currentThread().isInterrupted());
-                    result.set(true);
-                } catch (ExecutionException e) {
-                    fail("RetryException expected");
-                }
+        Runnable r = () -> {
+            Retryer<Boolean> retryer = RetryerBuilder.<Boolean>newBuilder()
+                    .withWaitStrategy(WaitStrategies.fixedWait(1000L, TimeUnit.MILLISECONDS))
+                    .retryIfResult(Objects::isNull)
+                    .build();
+            try {
+                retryer.call(alwaysNull(latch));
+                fail("RetryException expected");
+            } catch (RetryException e) {
+                assertTrue(!e.getLastFailedAttempt().hasException());
+                assertNull(e.getCause());
+                assertTrue(Thread.currentThread().isInterrupted());
+                result.set(true);
+            } catch (ExecutionException e) {
+                fail("RetryException expected");
             }
         };
         Thread t = new Thread(r);
@@ -417,34 +395,10 @@ public class RetryerBuilderTest {
     public void testWrap() throws ExecutionException, RetryException {
         Callable<Boolean> callable = notNullAfter5Attempts();
         Retryer<Boolean> retryer = RetryerBuilder.<Boolean>newBuilder()
-                .retryIfResult(Predicates.<Boolean>isNull())
+                .retryIfResult(Objects::isNull)
                 .build();
         RetryerCallable<Boolean> wrapped = retryer.wrap(callable);
         assertTrue(wrapped.call());
-    }
-
-    @Test
-    public void testWhetherBuilderFailsForNullStopStrategy() {
-        try {
-            RetryerBuilder.<Void>newBuilder()
-                    .withStopStrategy(null)
-                    .build();
-            fail("Exepcted to fail for null stop strategy");
-        } catch (NullPointerException exception) {
-            assertTrue(exception.getMessage().contains("stopStrategy may not be null"));
-        }
-    }
-
-    @Test
-    public void testWhetherBuilderFailsForNullWaitStrategy() {
-        try {
-            RetryerBuilder.<Void>newBuilder()
-                    .withWaitStrategy(null)
-                    .build();
-            fail("Exepcted to fail for null wait strategy");
-        } catch (NullPointerException exception) {
-            assertTrue(exception.getMessage().contains("waitStrategy may not be null"));
-        }
     }
 
     @Test
@@ -461,7 +415,7 @@ public class RetryerBuilderTest {
 
     @Test
     public void testRetryListener_SuccessfulAttempt() throws Exception {
-        final Map<Long, Attempt> attempts = new HashMap<Long, Attempt>();
+        final Map<Long, Attempt> attempts = new HashMap<>();
 
         RetryListener listener = new RetryListener() {
             @Override
@@ -473,24 +427,24 @@ public class RetryerBuilderTest {
         Callable<Boolean> callable = notNullAfter5Attempts();
 
         Retryer<Boolean> retryer = RetryerBuilder.<Boolean>newBuilder()
-                .retryIfResult(Predicates.<Boolean>isNull())
+                .retryIfResult(Objects::isNull)
                 .withRetryListener(listener)
                 .build();
         assertTrue(retryer.call(callable));
 
         assertEquals(6, attempts.size());
 
-        assertResultAttempt(attempts.get(1L), true, null);
-        assertResultAttempt(attempts.get(2L), true, null);
-        assertResultAttempt(attempts.get(3L), true, null);
-        assertResultAttempt(attempts.get(4L), true, null);
-        assertResultAttempt(attempts.get(5L), true, null);
-        assertResultAttempt(attempts.get(6L), true, true);
+        assertResultAttempt(attempts.get(1L), null);
+        assertResultAttempt(attempts.get(2L), null);
+        assertResultAttempt(attempts.get(3L), null);
+        assertResultAttempt(attempts.get(4L), null);
+        assertResultAttempt(attempts.get(5L), null);
+        assertResultAttempt(attempts.get(6L), true);
     }
 
     @Test
     public void testRetryListener_WithException() throws Exception {
-        final Map<Long, Attempt> attempts = new HashMap<Long, Attempt>();
+        final Map<Long, Attempt> attempts = new HashMap<>();
 
         RetryListener listener = new RetryListener() {
             @Override
@@ -502,7 +456,7 @@ public class RetryerBuilderTest {
         Callable<Boolean> callable = noIOExceptionAfter5Attempts();
 
         Retryer<Boolean> retryer = RetryerBuilder.<Boolean>newBuilder()
-                .retryIfResult(Predicates.<Boolean>isNull())
+                .retryIfResult(Objects::isNull)
                 .retryIfException()
                 .withRetryListener(listener)
                 .build();
@@ -510,22 +464,17 @@ public class RetryerBuilderTest {
 
         assertEquals(6, attempts.size());
 
-        assertExceptionAttempt(attempts.get(1L), true, IOException.class);
-        assertExceptionAttempt(attempts.get(2L), true, IOException.class);
-        assertExceptionAttempt(attempts.get(3L), true, IOException.class);
-        assertExceptionAttempt(attempts.get(4L), true, IOException.class);
-        assertExceptionAttempt(attempts.get(5L), true, IOException.class);
-        assertResultAttempt(attempts.get(6L), true, true);
+        assertExceptionAttempt(attempts.get(1L), IOException.class);
+        assertExceptionAttempt(attempts.get(2L), IOException.class);
+        assertExceptionAttempt(attempts.get(3L), IOException.class);
+        assertExceptionAttempt(attempts.get(4L), IOException.class);
+        assertExceptionAttempt(attempts.get(5L), IOException.class);
+        assertResultAttempt(attempts.get(6L), true);
     }
 
     @Test
     public void testMultipleRetryListeners() throws Exception {
-        Callable<Boolean> callable = new Callable<Boolean>() {
-            @Override
-            public Boolean call() throws Exception {
-                return true;
-            }
-        };
+        Callable<Boolean> callable = () -> true;
 
         final AtomicBoolean listenerOne = new AtomicBoolean(false);
         final AtomicBoolean listenerTwo = new AtomicBoolean(false);
@@ -550,25 +499,22 @@ public class RetryerBuilderTest {
         assertTrue(listenerTwo.get());
     }
 
-    private void assertResultAttempt(Attempt actualAttempt, boolean expectedHasResult, Object expectedResult) {
+    private void assertResultAttempt(Attempt actualAttempt, Object expectedResult) {
         assertFalse(actualAttempt.hasException());
-        assertEquals(expectedHasResult, actualAttempt.hasResult());
+        assertTrue(actualAttempt.hasResult());
         assertEquals(expectedResult, actualAttempt.getResult());
     }
 
-    private void assertExceptionAttempt(Attempt actualAttempt, boolean expectedHasException, Class<?> expectedExceptionClass) {
+    private void assertExceptionAttempt(Attempt actualAttempt, Class<?> expectedExceptionClass) {
         assertFalse(actualAttempt.hasResult());
-        assertEquals(expectedHasException, actualAttempt.hasException());
+        assertTrue(actualAttempt.hasException());
         assertTrue(expectedExceptionClass.isInstance(actualAttempt.getExceptionCause()));
     }
 
     private Callable<Boolean> alwaysNull(final CountDownLatch latch) {
-        return new Callable<Boolean>() {
-            @Override
-            public Boolean call() throws Exception {
-                latch.countDown();
-                return null;
-            }
+        return () -> {
+            latch.countDown();
+            return null;
         };
     }
 }
