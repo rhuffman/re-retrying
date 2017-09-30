@@ -103,7 +103,7 @@ dependencies {
     compileOnly 'com.google.code.findbugs:jsr305:2.0.2'
 
     // junit testing
-    testCompile 'junit:junit:4.11'
+    testCompile 'junit:junit:4.12'
     testCompile 'org.mockito:mockito-all:1.9.5'
 }
 
