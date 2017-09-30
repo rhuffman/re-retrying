@@ -48,9 +48,12 @@ public class AttemptTimeLimiters {
     }
 
     /**
-     * For control over thread management, it is preferable to offer an {@link ExecutorService} through the other
-     * factory method, {@link #fixedTimeLimit(long, TimeUnit, ExecutorService)}. See the note on
-     * {@link SimpleTimeLimiter#SimpleTimeLimiter(ExecutorService)}, which this AttemptTimeLimiter uses.
+     * For control over thread management, it is preferable to offer an {@link ExecutorService}
+     * through the other factory method, {@link #fixedTimeLimit(long, TimeUnit, ExecutorService)}.
+     * All calls to this method use the same cached thread pool created by
+     * {@link Executors#newCachedThreadPool()}. It is unbounded, meaning there is no limit to
+     * the number of threads it will create. It will reuse idle threads if they are available,
+     * and idle threads remain alive for 60 seconds.
      *
      * @param duration that an attempt may persist before being circumvented
      * @param timeUnit of the 'duration' arg
@@ -85,12 +88,17 @@ public class AttemptTimeLimiters {
     @Immutable
     private static final class FixedAttemptTimeLimit<V> implements AttemptTimeLimiter<V> {
 
+        /**
+         * ExecutorService used when no ExecutorService is specified in the constructor
+         */
+        private static final ExecutorService defaultExecutorService = Executors.newCachedThreadPool();
+
         private final TimeLimiter timeLimiter;
         private final long duration;
         private final TimeUnit timeUnit;
 
         FixedAttemptTimeLimit(long duration, @Nonnull TimeUnit timeUnit) {
-            this(duration, timeUnit, Executors.newCachedThreadPool());
+            this(duration, timeUnit, defaultExecutorService);
         }
 
         FixedAttemptTimeLimit(long duration, @Nonnull TimeUnit timeUnit, @Nonnull ExecutorService executorService) {

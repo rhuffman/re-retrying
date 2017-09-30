@@ -8,8 +8,7 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.lessThan;
+import static org.junit.Assert.assertTrue;
 
 /*
  * Copyright ${year} Robert Huffman
@@ -26,21 +25,24 @@ import static org.hamcrest.Matchers.lessThan;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-public class FixedAttemptTimeLimitTest {
+public class AttemptTimeLimitersTest {
 
     @Test
-    public void testFixedTimeLimitWithNoExeuctorReusesThreads() throws Exception {
-        AttemptTimeLimiter<Void> timeLimiter = AttemptTimeLimiters.fixedTimeLimit(1, TimeUnit.SECONDS);
+    public void testFixedTimeLimitWithNoExecutorReusesThreads() throws Exception {
         Set<Long> threadsUsed = Collections.synchronizedSet(Sets.newHashSet());
         Callable<Void> callable = () -> {
             threadsUsed.add(Thread.currentThread().getId());
             return null;
         };
+
         int iterations = 20;
         for (int i = 0; i < iterations; i++) {
+            AttemptTimeLimiter<Void> timeLimiter =
+                AttemptTimeLimiters.fixedTimeLimit(1, TimeUnit.SECONDS);
             timeLimiter.call(callable);
         }
-        assertThat(threadsUsed.size(), lessThan(iterations));
+        assertTrue("Should have used less than " + iterations +
+            " threads", threadsUsed.size() < iterations);
     }
 
 }
