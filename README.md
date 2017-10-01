@@ -43,29 +43,29 @@ Why was this fork necessary? The primary reason was to make it compatible with p
 ## Quickstart
 A minimal sample of some of the functionality would look like:
 
+Given a function that reads an integer:
 ```java
-Callable<Boolean> callable = new Callable<Boolean>() {
-    public Boolean call() throws Exception {
-        return true; // do something useful here
-    }
-};
 
-Retryer<Boolean> retryer = RetryerBuilder.<Boolean>newBuilder()
-        .retryIfResult(Predicates.<Boolean>isNull())
+public int readAnInteger() throws IOException {
+   ...
+}
+```
+
+The following will retry if the result of the method is zero, if an `IOException` is thrown, or if any other `RuntimeException` is thrown from the `call()` method. It will stop after attempting to retry 3 times and throw a `RetryException` that contains information about the last failed attempt. If any other `Exception` pops out of the `call()` method it's wrapped and rethrown in an `ExecutionException`.
+
+```java
+    Retryer<Integer> retryer = RetryerBuilder.<Integer>newBuilder()
+        .retryIfResult(Predicates.equalTo(0))
         .retryIfExceptionOfType(IOException.class)
         .retryIfRuntimeException()
         .withStopStrategy(StopStrategies.stopAfterAttempt(3))
         .build();
-try {
-    retryer.call(callable);
-} catch (RetryException e) {
-    e.printStackTrace();
-} catch (ExecutionException e) {
-    e.printStackTrace();
-}
+    try {
+      retryer.call(this::readAnInteger);
+    } catch (RetryException | ExecutionException e) {
+      e.printStackTrace();
+    }
 ```
-
-This will retry whenever the result of the `Callable` is null, if an `IOException` is thrown, or if any other `RuntimeException` is thrown from the `call()` method. It will stop after attempting to retry 3 times and throw a `RetryException` that contains information about the last failed attempt. If any other `Exception` pops out of the `call()` method it's wrapped and rethrown in an `ExecutionException`.
 
 ## Exponential Backoff
 
