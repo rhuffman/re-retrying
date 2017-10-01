@@ -41,7 +41,6 @@ Why was this fork necessary? The primary reason was to make it compatible with p
 ```
 
 ## Quickstart
-A minimal sample of some of the functionality would look like:
 
 Given a function that reads an integer:
 ```java
