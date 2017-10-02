@@ -119,11 +119,16 @@ jar {
 
 task javadocJar(type: Jar, dependsOn: javadoc) {
     classifier = 'javadoc'
-    from 'build/docs/javadoc'
+    from javadoc.destinationDir
     doFirst {
         // Timestamp changes on every build. By evaluating it later, won't needlessly fail up-to-date checks.
         manifest = defaultManifest()
     }
+}
+
+task publishJavadoc(type: Copy, dependsOn: javadoc) {
+    from javadoc.destinationDir
+    into "$projectDir/docs/javadoc"
 }
 
 task sourcesJar(type: Jar) {
