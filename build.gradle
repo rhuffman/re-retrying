@@ -128,7 +128,7 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
 
 task publishJavadoc(type: Copy, dependsOn: javadoc) {
     from javadoc.destinationDir
-    into "$projectDir/docs/javadoc"
+    into "$projectDir/docs"
 }
 
 task sourcesJar(type: Jar) {
