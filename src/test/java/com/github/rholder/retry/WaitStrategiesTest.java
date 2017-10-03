@@ -101,7 +101,7 @@ public class WaitStrategiesTest {
         assertTrue(exponentialWait.computeSleepTime(failedAttempt(5, 0)) == 32);
         assertTrue(exponentialWait.computeSleepTime(failedAttempt(6, 0)) == 40);
         assertTrue(exponentialWait.computeSleepTime(failedAttempt(7, 0)) == 40);
-        assertTrue(exponentialWait.computeSleepTime(failedAttempt(Integer.MAX_VALUE, 0)) == 40);
+        assertTrue(exponentialWait.computeSleepTime(failedAttempt(8, 0)) == 40);
     }
 
     @Test
@@ -114,7 +114,7 @@ public class WaitStrategiesTest {
         assertTrue(exponentialWait.computeSleepTime(failedAttempt(5, 0)) == 32000);
         assertTrue(exponentialWait.computeSleepTime(failedAttempt(6, 0)) == 50000);
         assertTrue(exponentialWait.computeSleepTime(failedAttempt(7, 0)) == 50000);
-        assertTrue(exponentialWait.computeSleepTime(failedAttempt(Integer.MAX_VALUE, 0)) == 50000);
+        assertTrue(exponentialWait.computeSleepTime(failedAttempt(8, 0)) == 50000);
     }
 
     @Test
@@ -138,7 +138,7 @@ public class WaitStrategiesTest {
         assertTrue(fibonacciWait.computeSleepTime(failedAttempt(5, 0L)) == 5L);
         assertTrue(fibonacciWait.computeSleepTime(failedAttempt(6, 0L)) == 8L);
         assertTrue(fibonacciWait.computeSleepTime(failedAttempt(7, 0L)) == 10L);
-        assertTrue(fibonacciWait.computeSleepTime(failedAttempt(Integer.MAX_VALUE, 0L)) == 10L);
+        assertTrue(fibonacciWait.computeSleepTime(failedAttempt(8, 0L)) == 10L);
     }
 
     @Test
@@ -151,7 +151,7 @@ public class WaitStrategiesTest {
         assertTrue(fibonacciWait.computeSleepTime(failedAttempt(5, 0L)) == 5000L);
         assertTrue(fibonacciWait.computeSleepTime(failedAttempt(6, 0L)) == 8000L);
         assertTrue(fibonacciWait.computeSleepTime(failedAttempt(7, 0L)) == 13000L);
-        assertTrue(fibonacciWait.computeSleepTime(failedAttempt(Integer.MAX_VALUE, 0L)) == 50000L);
+        assertTrue(fibonacciWait.computeSleepTime(failedAttempt(10, 0L)) == 50000L);
     }
 
     @Test
