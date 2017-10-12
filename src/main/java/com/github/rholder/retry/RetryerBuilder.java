@@ -33,7 +33,7 @@ import java.util.function.Predicate;
  */
 @SuppressWarnings("WeakerAccess")
 public class RetryerBuilder<V> {
-    private AttemptTimeLimiter<V> attemptTimeLimiter;
+    private AttemptTimeLimiter attemptTimeLimiter;
     private StopStrategy stopStrategy;
     private WaitStrategy waitStrategy;
     private BlockStrategy blockStrategy;
@@ -116,7 +116,7 @@ public class RetryerBuilder<V> {
      * @param attemptTimeLimiter to apply to each attempt
      * @return <code>this</code>
      */
-    public RetryerBuilder<V> withAttemptTimeLimiter(@Nonnull AttemptTimeLimiter<V> attemptTimeLimiter) {
+    public RetryerBuilder<V> withAttemptTimeLimiter(@Nonnull AttemptTimeLimiter attemptTimeLimiter) {
         Preconditions.checkNotNull(attemptTimeLimiter);
         this.attemptTimeLimiter = attemptTimeLimiter;
         return this;
@@ -189,7 +189,7 @@ public class RetryerBuilder<V> {
      * @return the built retryer.
      */
     public Retryer<V> build() {
-        AttemptTimeLimiter<V> theAttemptTimeLimiter = attemptTimeLimiter == null ? AttemptTimeLimiters.noTimeLimit() : attemptTimeLimiter;
+        AttemptTimeLimiter theAttemptTimeLimiter = attemptTimeLimiter == null ? AttemptTimeLimiters.noTimeLimit() : attemptTimeLimiter;
         StopStrategy theStopStrategy = stopStrategy == null ? StopStrategies.neverStop() : stopStrategy;
         WaitStrategy theWaitStrategy = waitStrategy == null ? WaitStrategies.noWait() : waitStrategy;
         BlockStrategy theBlockStrategy = blockStrategy == null ? BlockStrategies.threadSleepStrategy() : blockStrategy;
