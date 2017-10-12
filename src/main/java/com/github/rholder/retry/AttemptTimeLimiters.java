@@ -40,11 +40,10 @@ public class AttemptTimeLimiters {
     }
 
     /**
-     * @param <V> The type of the computation result.
      * @return an {@link AttemptTimeLimiter} impl which has no time limit
      */
-    public static <V> AttemptTimeLimiter<V> noTimeLimit() {
-        return new NoAttemptTimeLimit<>();
+    public static AttemptTimeLimiter noTimeLimit() {
+        return new NoAttemptTimeLimit();
     }
 
     /**
@@ -57,36 +56,35 @@ public class AttemptTimeLimiters {
      *
      * @param duration that an attempt may persist before being circumvented
      * @param timeUnit of the 'duration' arg
-     * @param <V>      the type of the computation result
      * @return an {@link AttemptTimeLimiter} with a fixed time limit for each attempt
      */
-    public static <V> AttemptTimeLimiter<V> fixedTimeLimit(long duration, @Nonnull TimeUnit timeUnit) {
+    public static AttemptTimeLimiter fixedTimeLimit(long duration, @Nonnull TimeUnit timeUnit) {
         Preconditions.checkNotNull(timeUnit);
-        return new FixedAttemptTimeLimit<>(duration, timeUnit);
+        return new FixedAttemptTimeLimit(duration, timeUnit);
     }
 
     /**
      * @param duration        that an attempt may persist before being circumvented
      * @param timeUnit        of the 'duration' arg
      * @param executorService used to enforce time limit
-     * @param <V>             the type of the computation result
      * @return an {@link AttemptTimeLimiter} with a fixed time limit for each attempt
      */
-    public static <V> AttemptTimeLimiter<V> fixedTimeLimit(long duration, @Nonnull TimeUnit timeUnit, @Nonnull ExecutorService executorService) {
+    public static AttemptTimeLimiter fixedTimeLimit(
+            long duration, @Nonnull TimeUnit timeUnit, @Nonnull ExecutorService executorService) {
         Preconditions.checkNotNull(timeUnit);
-        return new FixedAttemptTimeLimit<>(duration, timeUnit, executorService);
+        return new FixedAttemptTimeLimit(duration, timeUnit, executorService);
     }
 
     @Immutable
-    private static final class NoAttemptTimeLimit<V> implements AttemptTimeLimiter<V> {
+    private static final class NoAttemptTimeLimit implements AttemptTimeLimiter {
         @Override
-        public V call(Callable<V> callable) throws Exception {
+        public <T> T call(Callable<T> callable) throws Exception {
             return callable.call();
         }
     }
 
     @Immutable
-    private static final class FixedAttemptTimeLimit<V> implements AttemptTimeLimiter<V> {
+    private static final class FixedAttemptTimeLimit implements AttemptTimeLimiter {
 
         /**
          * ExecutorService used when no ExecutorService is specified in the constructor
@@ -114,7 +112,7 @@ public class AttemptTimeLimiters {
         }
 
         @Override
-        public V call(Callable<V> callable) throws Exception {
+        public <T> T call(Callable<T> callable) throws Exception {
             return timeLimiter.callWithTimeout(callable, duration, timeUnit);
         }
     }

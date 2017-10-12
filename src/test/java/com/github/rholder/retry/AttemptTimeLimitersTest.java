@@ -37,7 +37,7 @@ public class AttemptTimeLimitersTest {
 
         int iterations = 20;
         for (int i = 0; i < iterations; i++) {
-            AttemptTimeLimiter<Void> timeLimiter =
+            AttemptTimeLimiter timeLimiter =
                 AttemptTimeLimiters.fixedTimeLimit(1, TimeUnit.SECONDS);
             timeLimiter.call(callable);
         }

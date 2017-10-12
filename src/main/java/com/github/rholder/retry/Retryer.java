@@ -48,7 +48,7 @@ public final class Retryer<V> {
     private final StopStrategy stopStrategy;
     private final WaitStrategy waitStrategy;
     private final BlockStrategy blockStrategy;
-    private final AttemptTimeLimiter<V> attemptTimeLimiter;
+    private final AttemptTimeLimiter attemptTimeLimiter;
     private final Predicate<Attempt<V>> rejectionPredicate;
     private final Collection<RetryListener> listeners;
 
@@ -78,7 +78,7 @@ public final class Retryer<V> {
      *                           or not. If an attempt is rejected, the retryer will retry the call, unless the stop
      *                           strategy indicates otherwise or the thread is interrupted.
      */
-    public Retryer(@Nonnull AttemptTimeLimiter<V> attemptTimeLimiter,
+    public Retryer(@Nonnull AttemptTimeLimiter attemptTimeLimiter,
                    @Nonnull StopStrategy stopStrategy,
                    @Nonnull WaitStrategy waitStrategy,
                    @Nonnull Predicate<Attempt<V>> rejectionPredicate) {
@@ -96,7 +96,7 @@ public final class Retryer<V> {
      *                           or not. If an attempt is rejected, the retryer will retry the call, unless the stop
      *                           strategy indicates otherwise or the thread is interrupted.
      */
-    public Retryer(@Nonnull AttemptTimeLimiter<V> attemptTimeLimiter,
+    public Retryer(@Nonnull AttemptTimeLimiter attemptTimeLimiter,
                    @Nonnull StopStrategy stopStrategy,
                    @Nonnull WaitStrategy waitStrategy,
                    @Nonnull BlockStrategy blockStrategy,
@@ -117,7 +117,7 @@ public final class Retryer<V> {
      * @param listeners          collection of retry listeners
      */
     @Beta
-    public Retryer(@Nonnull AttemptTimeLimiter<V> attemptTimeLimiter,
+    public Retryer(@Nonnull AttemptTimeLimiter attemptTimeLimiter,
                    @Nonnull StopStrategy stopStrategy,
                    @Nonnull WaitStrategy waitStrategy,
                    @Nonnull BlockStrategy blockStrategy,
