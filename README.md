@@ -121,7 +121,7 @@ The re-retrying module uses a [Gradle](http://gradle.org)-based build system. In
 ## License
 The re-retrying module is released under version 2.0 of the [Apache License](http://www.apache.org/licenses/LICENSE-2.0).
 
-##Contributors
+## Contributors
 * Jean-Baptiste Nizet (JB)
 * Jason Dunkelberger (dirkraft)
 * Diwaker Gupta (diwakergupta)
