@@ -1,17 +1,5 @@
-package com.github.rholder.retry;
-
-import com.google.common.collect.Sets;
-import org.junit.Test;
-
-import java.util.Collections;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
-
-import static org.junit.Assert.assertTrue;
-
 /*
- * Copyright ${year} Robert Huffman
+ * Copyright 2017 Robert Huffman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +13,18 @@ import static org.junit.Assert.assertTrue;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package com.github.rholder.retry;
+
+import com.google.common.collect.Sets;
+import org.junit.Test;
+
+import java.util.Collections;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
+
+import static org.junit.Assert.assertTrue;
+
 public class AttemptTimeLimitersTest {
 
     @Test

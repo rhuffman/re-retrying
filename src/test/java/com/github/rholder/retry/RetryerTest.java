@@ -1,5 +1,5 @@
 /*
- * Copyright ${year} Robert Huffman
+ * Copyright 2017 Robert Huffman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
