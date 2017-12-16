@@ -54,10 +54,12 @@ public final class Retryer {
      * @param attemptTimeLimiter  to prevent from any single attempt from spinning infinitely
      * @param stopStrategy        the strategy used to decide when the retryer must stop retrying
      * @param waitStrategy        the strategy used to decide how much time to sleep between attempts
-     * @param blockStrategy       the strategy used to decide how to block between retry attempts; eg, Thread#sleep(), latches, etc.
+     * @param blockStrategy       the strategy used to decide how to block between retry attempts;
+     *                            eg, Thread#sleep(), latches, etc.
      * @param rejectionPredicates the predicates used to decide if the attempt must be rejected
-     *                            or not. If an attempt is rejected, the retryer will retry the call, unless the stop
-     *                            strategy indicates otherwise or the thread is interrupted.
+     *                            or not. If an attempt is rejected, the retryer will retry the call,
+     *                            unless the stop strategy indicates otherwise or the thread is
+     *                            interrupted.
      * @param listeners           collection of retry listeners
      */
     Retryer(@Nonnull AttemptTimeLimiter attemptTimeLimiter,
@@ -88,13 +90,15 @@ public final class Retryer {
      * and a new attempt is made.
      *
      * @param callable the callable task to be executed
+     * @param <T>      the return type of the Callable
      * @return the computed result of the given callable
      * @throws ExecutionException if the given callable throws an exception, and the
-     *                            rejection predicate considers the attempt as successful. The original exception
-     *                            is wrapped into an ExecutionException.
+     *                            rejection predicate considers the attempt as successful.
+     *                            The original exception is wrapped into an ExecutionException.
      * @throws RetryException     if all the attempts failed before the stop strategy decided
-     *                            to abort, or the thread was interrupted. Note that if the thread is interrupted,
-     *                            this exception is thrown and the thread's interrupt status is set.
+     *                            to abort, or the thread was interrupted. Note that if the thread
+     *                            is interrupted, this exception is thrown and the thread's
+     *                            interrupt status is set.
      */
     public <T> T call(Callable<T> callable) throws ExecutionException, RetryException {
         long startTime = System.nanoTime();
@@ -151,6 +155,7 @@ public final class Retryer {
      * this {@link Retryer} instance to call the given {@link Callable}.
      *
      * @param callable the callable to wrap
+     * @param <T>      the return type of the Callable
      * @return a {@link RetryerCallable} that behaves like the given {@link Callable} with retry behavior defined by this {@link Retryer}
      */
     @SuppressWarnings("WeakerAccess")

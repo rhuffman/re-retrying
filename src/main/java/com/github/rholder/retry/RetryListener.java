@@ -31,7 +31,6 @@ public interface RetryListener {
      * rejection predicate and stop strategies are applied.
      *
      * @param attempt the current {@link Attempt}
-     * @param <V>     the type returned by the retryer callable
      */
     void onRetry(Attempt<?> attempt);
 }
