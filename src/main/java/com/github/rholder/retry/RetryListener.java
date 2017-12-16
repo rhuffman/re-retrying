@@ -1,5 +1,6 @@
 /*
  * Copyright 2012-2015 Ray Holder
+ * Modifications copyright 2017 Robert Huffman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +31,6 @@ public interface RetryListener {
      * rejection predicate and stop strategies are applied.
      *
      * @param attempt the current {@link Attempt}
-     * @param <V>     the type returned by the retryer callable
      */
-    <V> void onRetry(Attempt<V> attempt);
+    void onRetry(Attempt<?> attempt);
 }

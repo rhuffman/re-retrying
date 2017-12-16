@@ -23,10 +23,10 @@ import java.util.concurrent.ExecutionException;
  * An attempt of a call, which resulted either in a result returned by the call,
  * or in a Throwable thrown by the call.
  *
- * @param <V> The type returned by the wrapped callable.
+ * @param <T> The type returned by the wrapped callable.
  * @author JB
  */
-public interface Attempt<V> {
+public interface Attempt<T> {
 
     /**
      * Returns the result of the attempt, if any.
@@ -35,7 +35,7 @@ public interface Attempt<V> {
      * @throws ExecutionException if an exception was thrown by the attempt. The thrown
      *                            exception is set as the cause of the ExecutionException
      */
-    V get() throws ExecutionException;
+    T get() throws ExecutionException;
 
     /**
      * Tells if the call returned a result or not
@@ -60,7 +60,7 @@ public interface Attempt<V> {
      * @throws IllegalStateException if the call didn't return a result, but threw an exception,
      *                               as indicated by {@link #hasResult()}
      */
-    V getResult() throws IllegalStateException;
+    T getResult() throws IllegalStateException;
 
     /**
      * Gets the exception thrown by the call

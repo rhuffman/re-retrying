@@ -27,7 +27,7 @@ public class RetryerTest {
 
     @Test
     public void testError() throws Exception {
-        Retryer<Void> retryer = RetryerBuilder.<Void>newBuilder()
+        Retryer retryer = RetryerBuilder.newBuilder()
                 .withStopStrategy(StopStrategies.stopAfterAttempt(2))
                 .build();
         Error toThrow = new Error("oops");
@@ -43,7 +43,7 @@ public class RetryerTest {
 
     @Test
     public void testRetryOnError() throws Exception {
-        Retryer<Void> retryer = RetryerBuilder.<Void>newBuilder()
+        Retryer retryer = RetryerBuilder.newBuilder()
                 .withStopStrategy(StopStrategies.stopAfterAttempt(2))
                 .retryIfExceptionOfType(Error.class)
                 .build();
@@ -55,7 +55,7 @@ public class RetryerTest {
 
     @Test
     public void testRuntimeException() throws Exception {
-        Retryer<Void> retryer = RetryerBuilder.<Void>newBuilder()
+        Retryer retryer = RetryerBuilder.newBuilder()
                 .withStopStrategy(StopStrategies.stopAfterAttempt(2))
                 .build();
         RuntimeException toThrow = new RuntimeException("oops");
@@ -71,7 +71,7 @@ public class RetryerTest {
 
     @Test
     public void testRetryOnRuntimeException() throws Exception {
-        Retryer<Void> retryer = RetryerBuilder.<Void>newBuilder()
+        Retryer retryer = RetryerBuilder.newBuilder()
                 .withStopStrategy(StopStrategies.stopAfterAttempt(2))
                 .retryIfExceptionOfType(RuntimeException.class)
                 .build();
@@ -83,7 +83,7 @@ public class RetryerTest {
 
     @Test
     public void testCheckedException() throws Exception {
-        Retryer<Void> retryer = RetryerBuilder.<Void>newBuilder()
+        Retryer retryer = RetryerBuilder.newBuilder()
                 .withStopStrategy(StopStrategies.stopAfterAttempt(2))
                 .build();
         Exception toThrow = new Exception("oops");
@@ -98,7 +98,7 @@ public class RetryerTest {
 
     @Test
     public void testRetryOnCheckedException() throws Exception {
-        Retryer<Void> retryer = RetryerBuilder.<Void>newBuilder()
+        Retryer retryer = RetryerBuilder.newBuilder()
                 .withStopStrategy(StopStrategies.stopAfterAttempt(2))
                 .retryIfExceptionOfType(Exception.class)
                 .build();
@@ -114,7 +114,7 @@ public class RetryerTest {
 
     @Test
     public void testRetryOnSubclassOfCheckedException() throws Exception {
-        Retryer<Void> retryer = RetryerBuilder.<Void>newBuilder()
+        Retryer retryer = RetryerBuilder.newBuilder()
                 .withStopStrategy(StopStrategies.stopAfterAttempt(2))
                 .retryIfExceptionOfType(Exception.class)
                 .build();

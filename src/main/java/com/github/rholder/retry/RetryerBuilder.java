@@ -18,6 +18,7 @@
 package com.github.rholder.retry;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
@@ -27,30 +28,23 @@ import java.util.function.Predicate;
 /**
  * A builder used to configure and create a {@link Retryer}.
  *
- * @param <V> result of a {@link Retryer}'s call, the type of the call return value
  * @author JB
  * @author Jason Dunkelberger (dirkraft)
  */
 @SuppressWarnings("WeakerAccess")
-public class RetryerBuilder<V> {
+public class RetryerBuilder {
     private AttemptTimeLimiter attemptTimeLimiter;
     private StopStrategy stopStrategy;
     private WaitStrategy waitStrategy;
     private BlockStrategy blockStrategy;
-    private Predicate<Attempt<V>> rejectionPredicate = (attempt) -> false;
+    private List<Predicate<Attempt<?>>> rejectionPredicates = Lists.newArrayList();
     private List<RetryListener> listeners = new ArrayList<>();
 
     private RetryerBuilder() {
     }
 
-    /**
-     * Constructs a new builder
-     *
-     * @param <V> result of a {@link Retryer}'s call, the type of the call return value
-     * @return the new builder
-     */
-    public static <V> RetryerBuilder<V> newBuilder() {
-        return new RetryerBuilder<>();
+    public static RetryerBuilder newBuilder() {
+        return new RetryerBuilder();
     }
 
     /**
@@ -59,7 +53,7 @@ public class RetryerBuilder<V> {
      * @param listener Listener to add
      * @return <code>this</code>
      */
-    public RetryerBuilder<V> withRetryListener(@Nonnull RetryListener listener) {
+    public RetryerBuilder withRetryListener(@Nonnull RetryListener listener) {
         Preconditions.checkNotNull(listener, "listener may not be null");
         listeners.add(listener);
         return this;
@@ -73,27 +67,30 @@ public class RetryerBuilder<V> {
      * @return <code>this</code>
      * @throws IllegalStateException if a wait strategy has already been set.
      */
-    public RetryerBuilder<V> withWaitStrategy(@Nonnull WaitStrategy waitStrategy) throws IllegalStateException {
+    public RetryerBuilder withWaitStrategy(@Nonnull WaitStrategy waitStrategy)
+            throws IllegalStateException {
         Preconditions.checkNotNull(waitStrategy, "waitStrategy may not be null");
-        Preconditions.checkState(this.waitStrategy == null, "a wait strategy has already been set %s", this.waitStrategy);
+        Preconditions.checkState(this.waitStrategy == null,
+                "a wait strategy has already been set %s", this.waitStrategy);
         this.waitStrategy = waitStrategy;
         return this;
     }
 
     /**
-     * Sets the stop strategy used to decide when to stop retrying. The default strategy is to not stop at all .
+     * Sets the stop strategy used to decide when to stop retrying. The default strategy
+     * is to not stop at all .
      *
      * @param stopStrategy the strategy used to decide when to stop retrying
      * @return <code>this</code>
      * @throws IllegalStateException if a stop strategy has already been set.
      */
-    public RetryerBuilder<V> withStopStrategy(@Nonnull StopStrategy stopStrategy) throws IllegalStateException {
+    public RetryerBuilder withStopStrategy(@Nonnull StopStrategy stopStrategy)
+            throws IllegalStateException {
         Preconditions.checkNotNull(stopStrategy, "stopStrategy may not be null");
         Preconditions.checkState(this.stopStrategy == null, "a stop strategy has already been set %s", this.stopStrategy);
         this.stopStrategy = stopStrategy;
         return this;
     }
-
 
     /**
      * Sets the block strategy used to decide how to block between retry attempts. The default strategy is to use Thread#sleep().
@@ -102,9 +99,11 @@ public class RetryerBuilder<V> {
      * @return <code>this</code>
      * @throws IllegalStateException if a block strategy has already been set.
      */
-    public RetryerBuilder<V> withBlockStrategy(@Nonnull BlockStrategy blockStrategy) throws IllegalStateException {
+    public RetryerBuilder withBlockStrategy(@Nonnull BlockStrategy blockStrategy)
+            throws IllegalStateException {
         Preconditions.checkNotNull(blockStrategy, "blockStrategy may not be null");
-        Preconditions.checkState(this.blockStrategy == null, "a block strategy has already been set %s", this.blockStrategy);
+        Preconditions.checkState(this.blockStrategy == null,
+                "a block strategy has already been set %s", this.blockStrategy);
         this.blockStrategy = blockStrategy;
         return this;
     }
@@ -116,7 +115,7 @@ public class RetryerBuilder<V> {
      * @param attemptTimeLimiter to apply to each attempt
      * @return <code>this</code>
      */
-    public RetryerBuilder<V> withAttemptTimeLimiter(@Nonnull AttemptTimeLimiter attemptTimeLimiter) {
+    public RetryerBuilder withAttemptTimeLimiter(@Nonnull AttemptTimeLimiter attemptTimeLimiter) {
         Preconditions.checkNotNull(attemptTimeLimiter);
         this.attemptTimeLimiter = attemptTimeLimiter;
         return this;
@@ -128,8 +127,8 @@ public class RetryerBuilder<V> {
      *
      * @return <code>this</code>
      */
-    public RetryerBuilder<V> retryIfException() {
-        rejectionPredicate = rejectionPredicate.or(new ExceptionClassPredicate<>(Exception.class));
+    public RetryerBuilder retryIfException() {
+        rejectionPredicates.add(new ExceptionClassPredicate(Exception.class));
         return this;
     }
 
@@ -139,8 +138,8 @@ public class RetryerBuilder<V> {
      *
      * @return <code>this</code>
      */
-    public RetryerBuilder<V> retryIfRuntimeException() {
-        rejectionPredicate = rejectionPredicate.or(new ExceptionClassPredicate<>(RuntimeException.class));
+    public RetryerBuilder retryIfRuntimeException() {
+        rejectionPredicates.add(new ExceptionClassPredicate(RuntimeException.class));
         return this;
     }
 
@@ -151,9 +150,9 @@ public class RetryerBuilder<V> {
      * @param exceptionClass the type of the exception which should cause the retryer to retry
      * @return <code>this</code>
      */
-    public RetryerBuilder<V> retryIfExceptionOfType(@Nonnull Class<? extends Throwable> exceptionClass) {
+    public RetryerBuilder retryIfExceptionOfType(@Nonnull Class<? extends Throwable> exceptionClass) {
         Preconditions.checkNotNull(exceptionClass, "exceptionClass may not be null");
-        rejectionPredicate = rejectionPredicate.or(new ExceptionClassPredicate<>(exceptionClass));
+        rejectionPredicates.add(new ExceptionClassPredicate(exceptionClass));
         return this;
     }
 
@@ -164,9 +163,9 @@ public class RetryerBuilder<V> {
      * @param exceptionPredicate the predicate which causes a retry if satisfied
      * @return <code>this</code>
      */
-    public RetryerBuilder<V> retryIfException(@Nonnull Predicate<Throwable> exceptionPredicate) {
+    public RetryerBuilder retryIfException(@Nonnull Predicate<Throwable> exceptionPredicate) {
         Preconditions.checkNotNull(exceptionPredicate, "exceptionPredicate may not be null");
-        rejectionPredicate = rejectionPredicate.or(new ExceptionPredicate<>(exceptionPredicate));
+        rejectionPredicates.add(new ExceptionPredicate(exceptionPredicate));
         return this;
     }
 
@@ -177,9 +176,9 @@ public class RetryerBuilder<V> {
      *                        to retry if the predicate is satisfied
      * @return <code>this</code>
      */
-    public RetryerBuilder<V> retryIfResult(@Nonnull Predicate<V> resultPredicate) {
+    public <T> RetryerBuilder retryIfResult(@Nonnull Predicate<T> resultPredicate) {
         Preconditions.checkNotNull(resultPredicate, "resultPredicate may not be null");
-        rejectionPredicate = rejectionPredicate.or(new ResultPredicate<>(resultPredicate));
+        rejectionPredicates.add(new ResultPredicate<>(resultPredicate));
         return this;
     }
 
@@ -188,16 +187,16 @@ public class RetryerBuilder<V> {
      *
      * @return the built retryer.
      */
-    public Retryer<V> build() {
+    public Retryer build() {
         AttemptTimeLimiter theAttemptTimeLimiter = attemptTimeLimiter == null ? AttemptTimeLimiters.noTimeLimit() : attemptTimeLimiter;
         StopStrategy theStopStrategy = stopStrategy == null ? StopStrategies.neverStop() : stopStrategy;
         WaitStrategy theWaitStrategy = waitStrategy == null ? WaitStrategies.noWait() : waitStrategy;
         BlockStrategy theBlockStrategy = blockStrategy == null ? BlockStrategies.threadSleepStrategy() : blockStrategy;
 
-        return new Retryer<>(theAttemptTimeLimiter, theStopStrategy, theWaitStrategy, theBlockStrategy, rejectionPredicate, listeners);
+        return new Retryer(theAttemptTimeLimiter, theStopStrategy, theWaitStrategy, theBlockStrategy, rejectionPredicates, listeners);
     }
 
-    private static final class ExceptionClassPredicate<V> implements Predicate<Attempt<V>> {
+    private static final class ExceptionClassPredicate implements Predicate<Attempt<?>> {
 
         private Class<? extends Throwable> exceptionClass;
 
@@ -206,31 +205,36 @@ public class RetryerBuilder<V> {
         }
 
         @Override
-        public boolean test(Attempt<V> attempt) {
+        public boolean test(Attempt<?> attempt) {
             return attempt.hasException() &&
                     exceptionClass.isAssignableFrom(attempt.getExceptionCause().getClass());
         }
     }
 
-    private static final class ResultPredicate<V> implements Predicate<Attempt<V>> {
+    private static final class ResultPredicate<T> implements Predicate<Attempt<?>> {
 
-        private Predicate<V> delegate;
+        private Predicate<T> delegate;
 
-        ResultPredicate(Predicate<V> delegate) {
+        ResultPredicate(Predicate<T> delegate) {
             this.delegate = delegate;
         }
 
         @Override
-        public boolean test(Attempt<V> attempt) {
+        public boolean test(Attempt<?> attempt) {
             if (!attempt.hasResult()) {
                 return false;
             }
-            V result = attempt.getResult();
-            return delegate.test(result);
+            try {
+                @SuppressWarnings("unchecked")
+                T result = (T) attempt.getResult();
+                return delegate.test(result);
+            } catch (ClassCastException e) {
+                return false;
+            }
         }
     }
 
-    private static final class ExceptionPredicate<V> implements Predicate<Attempt<V>> {
+    private static final class ExceptionPredicate implements Predicate<Attempt<?>> {
 
         private Predicate<Throwable> delegate;
 
@@ -239,7 +243,7 @@ public class RetryerBuilder<V> {
         }
 
         @Override
-        public boolean test(Attempt<V> attempt) {
+        public boolean test(Attempt<?> attempt) {
             return attempt.hasException() && delegate.test(attempt.getExceptionCause());
         }
     }

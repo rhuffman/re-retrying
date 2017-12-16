@@ -53,7 +53,7 @@ public int readAnInteger() throws IOException {
 The following will retry if the result of the method is zero, if an `IOException` is thrown, or if any other `RuntimeException` is thrown from the `call()` method. It will stop after attempting to retry 3 times and throw a `RetryException` that contains information about the last failed attempt. If any other `Exception` pops out of the `call()` method it's wrapped and rethrown in an `ExecutionException`.
 
 ```java
-    Retryer<Integer> retryer = RetryerBuilder.<Integer>newBuilder()
+    Retryer retryer = RetryerBuilder.newBuilder()
         .retryIfResult(Predicates.equalTo(0))
         .retryIfExceptionOfType(IOException.class)
         .retryIfRuntimeException()
@@ -71,7 +71,7 @@ The following will retry if the result of the method is zero, if an `IOException
 Create a `Retryer` that retries forever, waiting after every failed retry in increasing exponential backoff intervals until at most 5 minutes. After 5 minutes, retry from then on in 5 minute intervals.
 
 ```java
-Retryer<Boolean> retryer = RetryerBuilder.<Boolean>newBuilder()
+Retryer retryer = RetryerBuilder.newBuilder()
         .retryIfExceptionOfType(IOException.class)
         .retryIfRuntimeException()
         .withWaitStrategy(WaitStrategies.exponentialWait(100, 5, TimeUnit.MINUTES))
@@ -85,7 +85,7 @@ You can read more about [exponential backoff](http://en.wikipedia.org/wiki/Expon
 Create a `Retryer` that retries forever, waiting after every failed retry in increasing Fibonacci backoff intervals until at most 2 minutes. After 2 minutes, retry from then on in 2 minute intervals.
 
 ```java
-Retryer<Boolean> retryer = RetryerBuilder.<Boolean>newBuilder()
+Retryer retryer = RetryerBuilder.newBuilder()
         .retryIfExceptionOfType(IOException.class)
         .retryIfRuntimeException()
         .withWaitStrategy(WaitStrategies.fibonacciWait(100, 2, TimeUnit.MINUTES))
