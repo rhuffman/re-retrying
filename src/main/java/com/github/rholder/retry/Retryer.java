@@ -39,16 +39,15 @@ import java.util.function.Predicate;
  * Retryer instances are better constructed with a {@link RetryerBuilder}. A retryer
  * is thread-safe, provided the arguments passed to its constructor are thread-safe.
  *
- * @param <V> the type of the call return value
  * @author JB
  * @author Jason Dunkelberger (dirkraft)
  */
-public final class Retryer<V> {
+public final class Retryer {
     private final StopStrategy stopStrategy;
     private final WaitStrategy waitStrategy;
     private final BlockStrategy blockStrategy;
     private final AttemptTimeLimiter attemptTimeLimiter;
-    private final List<Predicate<Attempt<V>>> rejectionPredicates;
+    private final List<Predicate<Attempt<?>>> rejectionPredicates;
     private final Collection<RetryListener> listeners;
 
     /**
@@ -62,11 +61,11 @@ public final class Retryer<V> {
      * @param listeners           collection of retry listeners
      */
     Retryer(@Nonnull AttemptTimeLimiter attemptTimeLimiter,
-                   @Nonnull StopStrategy stopStrategy,
-                   @Nonnull WaitStrategy waitStrategy,
-                   @Nonnull BlockStrategy blockStrategy,
-                   @Nonnull List<Predicate<Attempt<V>>> rejectionPredicates,
-                   @Nonnull Collection<RetryListener> listeners) {
+            @Nonnull StopStrategy stopStrategy,
+            @Nonnull WaitStrategy waitStrategy,
+            @Nonnull BlockStrategy blockStrategy,
+            @Nonnull List<Predicate<Attempt<?>>> rejectionPredicates,
+            @Nonnull Collection<RetryListener> listeners) {
         Preconditions.checkNotNull(attemptTimeLimiter, "timeLimiter may not be null");
         Preconditions.checkNotNull(stopStrategy, "stopStrategy may not be null");
         Preconditions.checkNotNull(waitStrategy, "waitStrategy may not be null");
@@ -97,15 +96,17 @@ public final class Retryer<V> {
      *                            to abort, or the thread was interrupted. Note that if the thread is interrupted,
      *                            this exception is thrown and the thread's interrupt status is set.
      */
-    public V call(Callable<V> callable) throws ExecutionException, RetryException {
+    public <T> T call(Callable<T> callable) throws ExecutionException, RetryException {
         long startTime = System.nanoTime();
         for (int attemptNumber = 1; ; attemptNumber++) {
-            Attempt<V> attempt;
+            Attempt<T> attempt;
             try {
-                V result = attemptTimeLimiter.call(callable);
-                attempt = new ResultAttempt<>(result, attemptNumber, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime));
+                T result = attemptTimeLimiter.call(callable);
+                long delaySinceFirstAttempt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
+                attempt = new ResultAttempt<>(result, attemptNumber, delaySinceFirstAttempt);
             } catch (Throwable t) {
-                attempt = new ExceptionAttempt<>(t, attemptNumber, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime));
+                long delaySinceFirstAttempt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
+                attempt = new ExceptionAttempt<>(t, attemptNumber, delaySinceFirstAttempt);
             }
 
             for (RetryListener listener : listeners) {
@@ -130,13 +131,13 @@ public final class Retryer<V> {
     }
 
     /**
-     * Applyies the rejection predicates to the attempt, in order, until either one
+     * Applies the rejection predicates to the attempt, in order, until either one
      * predicate returns true or all predicates return false.
      *
      * @param attempt The attempt made by invoking the call
      */
-    private boolean test(Attempt<V> attempt) {
-        for (Predicate<Attempt<V>> predicate : rejectionPredicates) {
+    private boolean test(Attempt<?> attempt) {
+        for (Predicate<Attempt<?>> predicate : rejectionPredicates) {
             if (predicate.test(attempt)) {
                 return true;
             }
@@ -153,24 +154,24 @@ public final class Retryer<V> {
      * @return a {@link RetryerCallable} that behaves like the given {@link Callable} with retry behavior defined by this {@link Retryer}
      */
     @SuppressWarnings("WeakerAccess")
-    public RetryerCallable<V> wrap(Callable<V> callable) {
+    public <T> RetryerCallable<T> wrap(Callable<T> callable) {
         return new RetryerCallable<>(this, callable);
     }
 
     @Immutable
-    static final class ResultAttempt<R> implements Attempt<R> {
-        private final R result;
+    static final class ResultAttempt<T> implements Attempt<T> {
+        private final T result;
         private final long attemptNumber;
         private final long delaySinceFirstAttempt;
 
-        ResultAttempt(R result, long attemptNumber, long delaySinceFirstAttempt) {
+        ResultAttempt(T result, long attemptNumber, long delaySinceFirstAttempt) {
             this.result = result;
             this.attemptNumber = attemptNumber;
             this.delaySinceFirstAttempt = delaySinceFirstAttempt;
         }
 
         @Override
-        public R get() throws ExecutionException {
+        public T get() throws ExecutionException {
             return result;
         }
 
@@ -185,7 +186,7 @@ public final class Retryer<V> {
         }
 
         @Override
-        public R getResult() throws IllegalStateException {
+        public T getResult() throws IllegalStateException {
             return result;
         }
 
@@ -206,7 +207,7 @@ public final class Retryer<V> {
     }
 
     @Immutable
-    static final class ExceptionAttempt<R> implements Attempt<R> {
+    static final class ExceptionAttempt<T> implements Attempt<T> {
         private final ExecutionException e;
         private final long attemptNumber;
         private final long delaySinceFirstAttempt;
@@ -218,7 +219,7 @@ public final class Retryer<V> {
         }
 
         @Override
-        public R get() throws ExecutionException {
+        public T get() throws ExecutionException {
             throw e;
         }
 
@@ -233,7 +234,7 @@ public final class Retryer<V> {
         }
 
         @Override
-        public R getResult() throws IllegalStateException {
+        public T getResult() throws IllegalStateException {
             throw new IllegalStateException("The attempt resulted in an exception, not in a result");
         }
 
@@ -259,12 +260,12 @@ public final class Retryer<V> {
      *
      * @author JB
      */
-    public static class RetryerCallable<X> implements Callable<X> {
-        private Retryer<X> retryer;
-        private Callable<X> callable;
+    public static class RetryerCallable<T> implements Callable<T> {
+        private Retryer retryer;
+        private Callable<T> callable;
 
-        private RetryerCallable(Retryer<X> retryer,
-                                Callable<X> callable) {
+        private RetryerCallable(Retryer retryer,
+                                Callable<T> callable) {
             this.retryer = retryer;
             this.callable = callable;
         }
@@ -275,7 +276,7 @@ public final class Retryer<V> {
          * @see Retryer#call(Callable)
          */
         @Override
-        public X call() throws ExecutionException, RetryException {
+        public T call() throws ExecutionException, RetryException {
             return retryer.call(callable);
         }
     }
