@@ -18,6 +18,7 @@
 package com.github.rholder.retry;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
@@ -37,7 +38,7 @@ public class RetryerBuilder<V> {
     private StopStrategy stopStrategy;
     private WaitStrategy waitStrategy;
     private BlockStrategy blockStrategy;
-    private Predicate<Attempt<V>> rejectionPredicate = (attempt) -> false;
+    private List<Predicate<Attempt<V>>> rejectionPredicates = Lists.newArrayList();
     private List<RetryListener> listeners = new ArrayList<>();
 
     private RetryerBuilder() {
@@ -129,7 +130,7 @@ public class RetryerBuilder<V> {
      * @return <code>this</code>
      */
     public RetryerBuilder<V> retryIfException() {
-        rejectionPredicate = rejectionPredicate.or(new ExceptionClassPredicate<>(Exception.class));
+        rejectionPredicates.add(new ExceptionClassPredicate<>(Exception.class));
         return this;
     }
 
@@ -140,7 +141,7 @@ public class RetryerBuilder<V> {
      * @return <code>this</code>
      */
     public RetryerBuilder<V> retryIfRuntimeException() {
-        rejectionPredicate = rejectionPredicate.or(new ExceptionClassPredicate<>(RuntimeException.class));
+        rejectionPredicates.add(new ExceptionClassPredicate<>(RuntimeException.class));
         return this;
     }
 
@@ -153,7 +154,7 @@ public class RetryerBuilder<V> {
      */
     public RetryerBuilder<V> retryIfExceptionOfType(@Nonnull Class<? extends Throwable> exceptionClass) {
         Preconditions.checkNotNull(exceptionClass, "exceptionClass may not be null");
-        rejectionPredicate = rejectionPredicate.or(new ExceptionClassPredicate<>(exceptionClass));
+        rejectionPredicates.add(new ExceptionClassPredicate<>(exceptionClass));
         return this;
     }
 
@@ -166,7 +167,7 @@ public class RetryerBuilder<V> {
      */
     public RetryerBuilder<V> retryIfException(@Nonnull Predicate<Throwable> exceptionPredicate) {
         Preconditions.checkNotNull(exceptionPredicate, "exceptionPredicate may not be null");
-        rejectionPredicate = rejectionPredicate.or(new ExceptionPredicate<>(exceptionPredicate));
+        rejectionPredicates.add(new ExceptionPredicate<>(exceptionPredicate));
         return this;
     }
 
@@ -179,7 +180,7 @@ public class RetryerBuilder<V> {
      */
     public RetryerBuilder<V> retryIfResult(@Nonnull Predicate<V> resultPredicate) {
         Preconditions.checkNotNull(resultPredicate, "resultPredicate may not be null");
-        rejectionPredicate = rejectionPredicate.or(new ResultPredicate<>(resultPredicate));
+        rejectionPredicates.add(new ResultPredicate<>(resultPredicate));
         return this;
     }
 
@@ -194,7 +195,7 @@ public class RetryerBuilder<V> {
         WaitStrategy theWaitStrategy = waitStrategy == null ? WaitStrategies.noWait() : waitStrategy;
         BlockStrategy theBlockStrategy = blockStrategy == null ? BlockStrategies.threadSleepStrategy() : blockStrategy;
 
-        return new Retryer<>(theAttemptTimeLimiter, theStopStrategy, theWaitStrategy, theBlockStrategy, rejectionPredicate, listeners);
+        return new Retryer<>(theAttemptTimeLimiter, theStopStrategy, theWaitStrategy, theBlockStrategy, rejectionPredicates, listeners);
     }
 
     private static final class ExceptionClassPredicate<V> implements Predicate<Attempt<V>> {

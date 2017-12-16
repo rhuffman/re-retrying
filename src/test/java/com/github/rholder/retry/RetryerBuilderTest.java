@@ -417,12 +417,7 @@ public class RetryerBuilderTest {
     public void testRetryListener_SuccessfulAttempt() throws Exception {
         final Map<Long, Attempt> attempts = new HashMap<>();
 
-        RetryListener listener = new RetryListener() {
-            @Override
-            public <V> void onRetry(Attempt<V> attempt) {
-                attempts.put(attempt.getAttemptNumber(), attempt);
-            }
-        };
+        RetryListener listener = attempt -> attempts.put(attempt.getAttemptNumber(), attempt);
 
         Callable<Boolean> callable = notNullAfter5Attempts();
 
@@ -446,12 +441,7 @@ public class RetryerBuilderTest {
     public void testRetryListener_WithException() throws Exception {
         final Map<Long, Attempt> attempts = new HashMap<>();
 
-        RetryListener listener = new RetryListener() {
-            @Override
-            public <V> void onRetry(Attempt<V> attempt) {
-                attempts.put(attempt.getAttemptNumber(), attempt);
-            }
-        };
+        RetryListener listener = attempt -> attempts.put(attempt.getAttemptNumber(), attempt);
 
         Callable<Boolean> callable = noIOExceptionAfter5Attempts();
 
@@ -480,18 +470,8 @@ public class RetryerBuilderTest {
         final AtomicBoolean listenerTwo = new AtomicBoolean(false);
 
         Retryer<Boolean> retryer = RetryerBuilder.<Boolean>newBuilder()
-                .withRetryListener(new RetryListener() {
-                    @Override
-                    public <V> void onRetry(Attempt<V> attempt) {
-                        listenerOne.set(true);
-                    }
-                })
-                .withRetryListener(new RetryListener() {
-                    @Override
-                    public <V> void onRetry(Attempt<V> attempt) {
-                        listenerTwo.set(true);
-                    }
-                })
+                .withRetryListener(attempt -> listenerOne.set(true))
+                .withRetryListener(attempt -> listenerTwo.set(true))
                 .build();
 
         assertTrue(retryer.call(callable));

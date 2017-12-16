@@ -17,13 +17,12 @@
 
 package com.github.rholder.retry;
 
-import com.google.common.annotations.Beta;
 import com.google.common.base.Preconditions;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -49,92 +48,37 @@ public final class Retryer<V> {
     private final WaitStrategy waitStrategy;
     private final BlockStrategy blockStrategy;
     private final AttemptTimeLimiter attemptTimeLimiter;
-    private final Predicate<Attempt<V>> rejectionPredicate;
+    private final List<Predicate<Attempt<V>>> rejectionPredicates;
     private final Collection<RetryListener> listeners;
 
     /**
-     * Constructor
-     *
-     * @param stopStrategy       the strategy used to decide when the retryer must stop retrying
-     * @param waitStrategy       the strategy used to decide how much time to sleep between attempts
-     * @param rejectionPredicate the predicate used to decide if the attempt must be rejected
-     *                           or not. If an attempt is rejected, the retryer will retry the call, unless the stop
-     *                           strategy indicates otherwise or the thread is interrupted.
+     * @param attemptTimeLimiter  to prevent from any single attempt from spinning infinitely
+     * @param stopStrategy        the strategy used to decide when the retryer must stop retrying
+     * @param waitStrategy        the strategy used to decide how much time to sleep between attempts
+     * @param blockStrategy       the strategy used to decide how to block between retry attempts; eg, Thread#sleep(), latches, etc.
+     * @param rejectionPredicates the predicates used to decide if the attempt must be rejected
+     *                            or not. If an attempt is rejected, the retryer will retry the call, unless the stop
+     *                            strategy indicates otherwise or the thread is interrupted.
+     * @param listeners           collection of retry listeners
      */
-    public Retryer(@Nonnull StopStrategy stopStrategy,
-                   @Nonnull WaitStrategy waitStrategy,
-                   @Nonnull Predicate<Attempt<V>> rejectionPredicate) {
-
-        this(AttemptTimeLimiters.noTimeLimit(), stopStrategy, waitStrategy, BlockStrategies.threadSleepStrategy(), rejectionPredicate);
-    }
-
-    /**
-     * Constructor
-     *
-     * @param attemptTimeLimiter to prevent from any single attempt from spinning infinitely
-     * @param stopStrategy       the strategy used to decide when the retryer must stop retrying
-     * @param waitStrategy       the strategy used to decide how much time to sleep between attempts
-     * @param rejectionPredicate the predicate used to decide if the attempt must be rejected
-     *                           or not. If an attempt is rejected, the retryer will retry the call, unless the stop
-     *                           strategy indicates otherwise or the thread is interrupted.
-     */
-    public Retryer(@Nonnull AttemptTimeLimiter attemptTimeLimiter,
-                   @Nonnull StopStrategy stopStrategy,
-                   @Nonnull WaitStrategy waitStrategy,
-                   @Nonnull Predicate<Attempt<V>> rejectionPredicate) {
-        this(attemptTimeLimiter, stopStrategy, waitStrategy, BlockStrategies.threadSleepStrategy(), rejectionPredicate);
-    }
-
-    /**
-     * Constructor
-     *
-     * @param attemptTimeLimiter to prevent from any single attempt from spinning infinitely
-     * @param stopStrategy       the strategy used to decide when the retryer must stop retrying
-     * @param waitStrategy       the strategy used to decide how much time to sleep between attempts
-     * @param blockStrategy      the strategy used to decide how to block between retry attempts; eg, Thread#sleep(), latches, etc.
-     * @param rejectionPredicate the predicate used to decide if the attempt must be rejected
-     *                           or not. If an attempt is rejected, the retryer will retry the call, unless the stop
-     *                           strategy indicates otherwise or the thread is interrupted.
-     */
-    public Retryer(@Nonnull AttemptTimeLimiter attemptTimeLimiter,
+    Retryer(@Nonnull AttemptTimeLimiter attemptTimeLimiter,
                    @Nonnull StopStrategy stopStrategy,
                    @Nonnull WaitStrategy waitStrategy,
                    @Nonnull BlockStrategy blockStrategy,
-                   @Nonnull Predicate<Attempt<V>> rejectionPredicate) {
-        this(attemptTimeLimiter, stopStrategy, waitStrategy, blockStrategy, rejectionPredicate, new ArrayList<>());
-    }
-
-    /**
-     * Constructor
-     *
-     * @param attemptTimeLimiter to prevent from any single attempt from spinning infinitely
-     * @param stopStrategy       the strategy used to decide when the retryer must stop retrying
-     * @param waitStrategy       the strategy used to decide how much time to sleep between attempts
-     * @param blockStrategy      the strategy used to decide how to block between retry attempts; eg, Thread#sleep(), latches, etc.
-     * @param rejectionPredicate the predicate used to decide if the attempt must be rejected
-     *                           or not. If an attempt is rejected, the retryer will retry the call, unless the stop
-     *                           strategy indicates otherwise or the thread is interrupted.
-     * @param listeners          collection of retry listeners
-     */
-    @Beta
-    public Retryer(@Nonnull AttemptTimeLimiter attemptTimeLimiter,
-                   @Nonnull StopStrategy stopStrategy,
-                   @Nonnull WaitStrategy waitStrategy,
-                   @Nonnull BlockStrategy blockStrategy,
-                   @Nonnull Predicate<Attempt<V>> rejectionPredicate,
+                   @Nonnull List<Predicate<Attempt<V>>> rejectionPredicates,
                    @Nonnull Collection<RetryListener> listeners) {
         Preconditions.checkNotNull(attemptTimeLimiter, "timeLimiter may not be null");
         Preconditions.checkNotNull(stopStrategy, "stopStrategy may not be null");
         Preconditions.checkNotNull(waitStrategy, "waitStrategy may not be null");
         Preconditions.checkNotNull(blockStrategy, "blockStrategy may not be null");
-        Preconditions.checkNotNull(rejectionPredicate, "rejectionPredicate may not be null");
+        Preconditions.checkNotNull(rejectionPredicates, "rejectionPredicate may not be null");
         Preconditions.checkNotNull(listeners, "listeners may not null");
 
         this.attemptTimeLimiter = attemptTimeLimiter;
         this.stopStrategy = stopStrategy;
         this.waitStrategy = waitStrategy;
         this.blockStrategy = blockStrategy;
-        this.rejectionPredicate = rejectionPredicate;
+        this.rejectionPredicates = rejectionPredicates;
         this.listeners = listeners;
     }
 
@@ -168,7 +112,7 @@ public final class Retryer<V> {
                 listener.onRetry(attempt);
             }
 
-            if (!rejectionPredicate.test(attempt)) {
+            if (!test(attempt)) {
                 return attempt.get();
             }
             if (stopStrategy.shouldStop(attempt)) {
@@ -183,6 +127,21 @@ public final class Retryer<V> {
                 }
             }
         }
+    }
+
+    /**
+     * Applyies the rejection predicates to the attempt, in order, until either one
+     * predicate returns true or all predicates return false.
+     *
+     * @param attempt The attempt made by invoking the call
+     */
+    private boolean test(Attempt<V> attempt) {
+        for (Predicate<Attempt<V>> predicate : rejectionPredicates) {
+            if (predicate.test(attempt)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

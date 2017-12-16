@@ -32,5 +32,5 @@ public interface RetryListener {
      * @param attempt the current {@link Attempt}
      * @param <V>     the type returned by the retryer callable
      */
-    <V> void onRetry(Attempt<V> attempt);
+    void onRetry(Attempt<?> attempt);
 }
