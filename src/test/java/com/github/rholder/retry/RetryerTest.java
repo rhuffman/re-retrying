@@ -31,7 +31,7 @@ public class RetryerTest {
                 .withStopStrategy(StopStrategies.stopAfterAttempt(2))
                 .build();
         Error toThrow = new Error("oops");
-        ErrorThrowingCallable callable = new ErrorThrowingCallable(toThrow, 2);
+        ThrowingCallable callable = new ThrowingCallable(toThrow, 2);
         try {
             retryer.call(callable);
             fail("Should have thrown");
@@ -48,7 +48,7 @@ public class RetryerTest {
                 .retryIfExceptionOfType(Error.class)
                 .build();
         Error toThrow = new Error("oops");
-        ErrorThrowingCallable callable = new ErrorThrowingCallable(toThrow, 2);
+        ThrowingCallable callable = new ThrowingCallable(toThrow, 2);
         retryer.call(callable);
         assertEquals(2, callable.invocations);
     }
@@ -59,7 +59,7 @@ public class RetryerTest {
                 .withStopStrategy(StopStrategies.stopAfterAttempt(2))
                 .build();
         RuntimeException toThrow = new RuntimeException("oops");
-        RuntimeExceptionThrowingCallable callable = new RuntimeExceptionThrowingCallable(toThrow, 2);
+        ThrowingCallable callable = new ThrowingCallable(toThrow, 2);
         try {
             retryer.call(callable);
             fail("Should have thrown");
@@ -76,7 +76,7 @@ public class RetryerTest {
                 .retryIfExceptionOfType(RuntimeException.class)
                 .build();
         RuntimeException toThrow = new RuntimeException("oops");
-        RuntimeExceptionThrowingCallable callable = new RuntimeExceptionThrowingCallable(toThrow, 2);
+        ThrowingCallable callable = new ThrowingCallable(toThrow, 2);
         retryer.call(callable);
         assertEquals(2, callable.invocations);
     }
@@ -87,7 +87,7 @@ public class RetryerTest {
                 .withStopStrategy(StopStrategies.stopAfterAttempt(2))
                 .build();
         Exception toThrow = new Exception("oops");
-        ExceptionThrowingCallable callable = new ExceptionThrowingCallable(toThrow, 2);
+        ThrowingCallable callable = new ThrowingCallable(toThrow, 2);
         try {
             retryer.call(callable);
         } catch (ExecutionException e) {
@@ -103,7 +103,7 @@ public class RetryerTest {
                 .retryIfExceptionOfType(Exception.class)
                 .build();
         Exception toThrow = new Exception("oops");
-        ExceptionThrowingCallable callable = new ExceptionThrowingCallable(toThrow, 2);
+        ThrowingCallable callable = new ThrowingCallable(toThrow, 2);
         try {
             retryer.call(callable);
         } catch (ExecutionException e) {
@@ -119,7 +119,7 @@ public class RetryerTest {
                 .retryIfExceptionOfType(Exception.class)
                 .build();
         NullPointerException toThrow = new NullPointerException("oops");
-        ExceptionThrowingCallable callable = new ExceptionThrowingCallable(toThrow, 2);
+        ThrowingCallable callable = new ThrowingCallable(toThrow, 2);
         try {
             retryer.call(callable);
         } catch (ExecutionException e) {
@@ -128,69 +128,16 @@ public class RetryerTest {
         assertEquals(2, callable.invocations);
     }
 
+    private class ThrowingCallable implements Callable<Void> {
 
-    private class ErrorThrowingCallable implements Callable<Void> {
-
-        private final Error error;
-
-        private final int successAttempt;
-
-        private int invocations = 0;
-
-        ErrorThrowingCallable(Error error, int successAttempt) {
-            this.error = error;
-            this.successAttempt = successAttempt;
-        }
-
-        @Override
-        public Void call() {
-            if (invocations == Integer.MAX_VALUE) {
-                throw new RuntimeException("Already invoked the maximum number of times");
-            }
-            invocations++;
-            if (invocations == successAttempt) {
-                return null;
-            }
-            throw error;
-        }
-    }
-
-    private class RuntimeExceptionThrowingCallable implements Callable<Void> {
-
-        private final RuntimeException exception;
+        private final Throwable throwable;
 
         private final int successAttempt;
 
         private int invocations = 0;
 
-        RuntimeExceptionThrowingCallable(RuntimeException exception, int successAttempt) {
-            this.exception = exception;
-            this.successAttempt = successAttempt;
-        }
-
-        @Override
-        public Void call() {
-            if (invocations == Integer.MAX_VALUE) {
-                throw new RuntimeException("Already invoked the maximum number of times");
-            }
-            invocations++;
-            if (invocations == successAttempt) {
-                return null;
-            }
-            throw exception;
-        }
-    }
-
-    private class ExceptionThrowingCallable implements Callable<Void> {
-
-        private final Exception exception;
-
-        private final int successAttempt;
-
-        private int invocations = 0;
-
-        ExceptionThrowingCallable(Exception exception, int successAttempt) {
-            this.exception = exception;
+        ThrowingCallable(Throwable throwable, int successAttempt) {
+            this.throwable = throwable;
             this.successAttempt = successAttempt;
         }
 
@@ -203,7 +150,11 @@ public class RetryerTest {
             if (invocations == successAttempt) {
                 return null;
             }
-            throw exception;
+            if (throwable instanceof Error) {
+                throw (Error)throwable;
+            }
+            throw (Exception)throwable;
         }
     }
+
 }
