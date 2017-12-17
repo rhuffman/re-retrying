@@ -19,7 +19,6 @@ package com.github.rholder.retry;
 import org.junit.Test;
 
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 
 import static org.junit.Assert.*;
 
@@ -27,86 +26,51 @@ public class RetryerTest {
 
     @Test
     public void testErrorWithCallable() throws Exception {
-        Retryer retryer = RetryerBuilder.newBuilder()
-                .build();
-        Error toThrow = new Error("oops");
-        ThrowingCallable callable = new ThrowingCallable(toThrow, 2);
+        Retryer retryer = RetryerBuilder.newBuilder().build();
+        Thrower thrower = new Thrower(new Error("oops"), 5);
         try {
-            retryer.call(callable);
+            retryer.call(thrower);
             fail("Should have thrown");
         } catch (Error e) {
-            assertSame(toThrow, e);
+            assertSame(thrower.throwable, e);
         }
-        assertEquals(1, callable.invocations);
+        assertEquals(1, thrower.invocations);
     }
 
     @Test
-    public void testErrorWithRunnable() throws Exception {
-        Retryer retryer = RetryerBuilder.newBuilder()
-                .build();
-        Error toThrow = new Error("oops");
-        ThrowingRunnable runnable = new ThrowingRunnable(toThrow, 2);
+    public void testRuntimeExceptionWithCallable() throws Exception {
+        Retryer retryer = RetryerBuilder.newBuilder().build();
+        Thrower thrower = new Thrower(new RuntimeException("oops"), 5);
         try {
-            retryer.run(runnable);
+            retryer.call(thrower);
             fail("Should have thrown");
-        } catch (Error e) {
-            assertSame(toThrow, e);
+        } catch (RuntimeException e) {
+            assertSame(thrower.throwable, e);
         }
-        assertEquals(1, runnable.invocations);
+        assertEquals(1, thrower.invocations);
     }
 
+    @Test
+    public void testCheckedExceptionWithCallable() throws Exception {
+        Retryer retryer = RetryerBuilder.newBuilder().build();
+        Thrower thrower = new Thrower(new Exception("oops"), 5);
+        try {
+            retryer.call(thrower);
+            fail("Should have thrown an exception");
+        } catch (Exception e) {
+            assertSame(thrower.throwable, e);
+        }
+        assertEquals(1, thrower.invocations);
+    }
 
     @Test
     public void testRetryOnErrorWithCallable() throws Exception {
         Retryer retryer = RetryerBuilder.newBuilder()
                 .retryIfExceptionOfType(Error.class)
                 .build();
-        Error toThrow = new Error("oops");
-        ThrowingCallable callable = new ThrowingCallable(toThrow, 2);
-        retryer.call(callable);
-        assertEquals(2, callable.invocations);
-    }
-
-    @Test
-    public void testRetryOnErrorWithRunnable() throws Exception {
-        Retryer retryer = RetryerBuilder.newBuilder()
-                .retryIfExceptionOfType(Error.class)
-                .build();
-        Error toThrow = new Error("oops");
-        ThrowingRunnable runnable = new ThrowingRunnable(toThrow, 2);
-        retryer.run(runnable);
-        assertEquals(2, runnable.invocations);
-    }
-
-
-    @Test
-    public void testRuntimeExceptionWithCallable() throws Exception {
-        Retryer retryer = RetryerBuilder.newBuilder()
-                .build();
-        RuntimeException toThrow = new RuntimeException("oops");
-        ThrowingCallable callable = new ThrowingCallable(toThrow, 2);
-        try {
-            retryer.call(callable);
-            fail("Should have thrown");
-        } catch (RuntimeException e) {
-            assertSame(toThrow, e);
-        }
-        assertEquals(1, callable.invocations);
-    }
-
-    @Test
-    public void testRuntimeExceptionWithRunnable() throws Exception {
-        Retryer retryer = RetryerBuilder.newBuilder()
-                .build();
-        RuntimeException toThrow = new RuntimeException("oops");
-        ThrowingRunnable runnable = new ThrowingRunnable(toThrow, 2);
-        try {
-            retryer.run(runnable);
-            fail("Should have thrown");
-        } catch (RuntimeException e) {
-            assertSame(toThrow, e);
-        }
-        assertEquals(1, runnable.invocations);
+        Thrower thrower = new Thrower(new Error("oops"), 5);
+        retryer.call(thrower);
+        assertEquals(5, thrower.invocations);
     }
 
     @Test
@@ -114,10 +78,66 @@ public class RetryerTest {
         Retryer retryer = RetryerBuilder.newBuilder()
                 .retryIfExceptionOfType(RuntimeException.class)
                 .build();
-        RuntimeException toThrow = new RuntimeException("oops");
-        ThrowingCallable callable = new ThrowingCallable(toThrow, 2);
+        Thrower thrower = new Thrower(new RuntimeException("oops"), 5);
+        retryer.call(thrower);
+        assertEquals(5, thrower.invocations);
+    }
+
+    @Test
+    public void testRetryOnCheckedExceptionWithCallable() throws Exception {
+        Retryer retryer = RetryerBuilder.newBuilder()
+                .retryIfExceptionOfType(Exception.class)
+                .build();
+        Thrower thrower = new Thrower(new Exception("oops"), 5);
+        retryer.call(thrower);
+        assertEquals(5, thrower.invocations);
+    }
+
+    @Test
+    public void testRetryOnSubclassOfCheckedExceptionWithCallable()
+            throws Exception { Retryer retryer = RetryerBuilder.newBuilder()
+                .retryIfExceptionOfType(Exception.class)
+                .build();
+        NullPointerException toThrow = new NullPointerException("oops");
+        Thrower callable = new Thrower(toThrow, 5);
         retryer.call(callable);
-        assertEquals(2, callable.invocations);
+        assertEquals(5, callable.invocations);
+    }
+
+    @Test
+    public void testErrorWithRunnable() throws Exception {
+        Retryer retryer = RetryerBuilder.newBuilder().build();
+        Thrower thrower = new Thrower(new Error("oops"), 5);
+        try {
+            retryer.run(thrower);
+            fail("Should have thrown");
+        } catch (Error e) {
+            assertSame(thrower.throwable, e);
+        }
+        assertEquals(1, thrower.invocations);
+    }
+
+    @Test
+    public void testRuntimeExceptionWithRunnable() throws Exception {
+        Retryer retryer = RetryerBuilder.newBuilder().build();
+        Thrower thrower = new Thrower(new RuntimeException("oops"), 5);
+        try {
+            retryer.run(thrower);
+            fail("Should have thrown");
+        } catch (RuntimeException e) {
+            assertSame(thrower.throwable, e);
+        }
+        assertEquals(1, thrower.invocations);
+    }
+
+    @Test
+    public void testRetryOnErrorWithRunnable() throws Exception {
+        Retryer retryer = RetryerBuilder.newBuilder()
+                .retryIfExceptionOfType(Error.class)
+                .build();
+        Thrower thrower = new Thrower(new Error("oops"), 5);
+        retryer.run(thrower);
+        assertEquals(5, thrower.invocations);
     }
 
     @Test
@@ -125,57 +145,12 @@ public class RetryerTest {
         Retryer retryer = RetryerBuilder.newBuilder()
                 .retryIfExceptionOfType(RuntimeException.class)
                 .build();
-        RuntimeException toThrow = new RuntimeException("oops");
-        ThrowingRunnable runnable = new ThrowingRunnable(toThrow, 2);
-        retryer.run(runnable);
-        assertEquals(2, runnable.invocations);
+        Thrower thrower = new Thrower(new RuntimeException("oops"), 5);
+        retryer.run(thrower);
+        assertEquals(5, thrower.invocations);
     }
 
-    @Test
-    public void testCheckedException() throws Exception {
-        Retryer retryer = RetryerBuilder.newBuilder()
-                .build();
-        Exception toThrow = new Exception("oops");
-        ThrowingCallable callable = new ThrowingCallable(toThrow, 2);
-        try {
-            retryer.call(callable);
-        } catch (Exception e) {
-            assertSame(toThrow, e);
-        }
-        assertEquals(1, callable.invocations);
-    }
-
-    @Test
-    public void testRetryOnCheckedException() throws Exception {
-        Retryer retryer = RetryerBuilder.newBuilder()
-                .retryIfExceptionOfType(Exception.class)
-                .build();
-        Exception toThrow = new Exception("oops");
-        ThrowingCallable callable = new ThrowingCallable(toThrow, 2);
-        try {
-            retryer.call(callable);
-        } catch (ExecutionException e) {
-            assertSame(toThrow, e.getCause());
-        }
-        assertEquals(2, callable.invocations);
-    }
-
-    @Test
-    public void testRetryOnSubclassOfCheckedException() throws Exception {
-        Retryer retryer = RetryerBuilder.newBuilder()
-                .retryIfExceptionOfType(Exception.class)
-                .build();
-        NullPointerException toThrow = new NullPointerException("oops");
-        ThrowingCallable callable = new ThrowingCallable(toThrow, 2);
-        try {
-            retryer.call(callable);
-        } catch (ExecutionException e) {
-            assertSame(toThrow, e.getCause());
-        }
-        assertEquals(2, callable.invocations);
-    }
-
-    private class ThrowingCallable implements Callable<Void> {
+    private class Thrower implements Callable<Void>, Runnable {
 
         private final Throwable throwable;
 
@@ -183,59 +158,35 @@ public class RetryerTest {
 
         private int invocations = 0;
 
-        ThrowingCallable(Throwable throwable, int successAttempt) {
+        Thrower(Throwable throwable, int successAttempt) {
             this.throwable = throwable;
             this.successAttempt = successAttempt;
         }
 
         @Override
         public Void call() throws Exception {
-            if (invocations == Integer.MAX_VALUE) {
-                throw new RuntimeException("Already invoked the maximum number of times");
-            }
             invocations++;
             if (invocations == successAttempt) {
                 return null;
             }
             if (throwable instanceof Error) {
-                throw (Error)throwable;
+                throw (Error) throwable;
             }
-            throw (Exception)throwable;
-        }
-    }
-
-    private class ThrowingRunnable implements Runnable {
-
-        private final Throwable throwable;
-
-        private final int successAttempt;
-
-        private int invocations = 0;
-
-        ThrowingRunnable(RuntimeException throwable, int successAttempt) {
-            this.throwable = throwable;
-            this.successAttempt = successAttempt;
-        }
-
-        ThrowingRunnable(Error throwable, int successAttempt) {
-            this.throwable = throwable;
-            this.successAttempt = successAttempt;
+            throw (Exception) throwable;
         }
 
         @Override
         public void run() {
-            if (invocations == Integer.MAX_VALUE) {
-                throw new RuntimeException("Already invoked the maximum number of times");
-            }
             invocations++;
             if (invocations == successAttempt) {
                 return;
             }
             if (throwable instanceof Error) {
-                throw (Error)throwable;
+                throw (Error) throwable;
             }
-            throw (RuntimeException)throwable;
+            throw (RuntimeException) throwable;
         }
+
     }
 
 }
