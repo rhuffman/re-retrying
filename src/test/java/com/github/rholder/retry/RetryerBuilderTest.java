@@ -139,12 +139,8 @@ public class RetryerBuilderTest {
                 .build();
         try {
             retryer.call(callable);
-            fail("RetryException expected");
-        } catch (RetryException e) {
-            assertEquals(3, e.getNumberOfFailedAttempts());
-            assertTrue(e.getLastFailedAttempt().hasException());
-            assertTrue(e.getLastFailedAttempt().getException() instanceof IOException);
-            assertTrue(e.getCause() instanceof IOException);
+            fail("Exception expected");
+        } catch (IOException ignored) {
         }
 
         callable = noIllegalStateExceptionAfter5Attempts();
@@ -154,12 +150,8 @@ public class RetryerBuilderTest {
                 .build();
         try {
             retryer.call(callable);
-            fail("RetryException expected");
-        } catch (RetryException e) {
-            assertEquals(3, e.getNumberOfFailedAttempts());
-            assertTrue(e.getLastFailedAttempt().hasException());
-            assertTrue(e.getLastFailedAttempt().getException() instanceof IllegalStateException);
-            assertTrue(e.getCause() instanceof IllegalStateException);
+            fail("Exception expected");
+        } catch (IllegalStateException ignored) {
         }
     }
 
@@ -215,12 +207,8 @@ public class RetryerBuilderTest {
                 .build();
         try {
             retryer.call(callable);
-            fail("RetryException expected");
-        } catch (RetryException e) {
-            assertEquals(3, e.getNumberOfFailedAttempts());
-            assertTrue(e.getLastFailedAttempt().hasException());
-            assertTrue(e.getLastFailedAttempt().getException() instanceof IllegalStateException);
-            assertTrue(e.getCause() instanceof IllegalStateException);
+            fail("Exception expected");
+        } catch (IllegalStateException ignored) {
         }
     }
 
@@ -246,12 +234,8 @@ public class RetryerBuilderTest {
                 .build();
         try {
             retryer.call(callable);
-            fail("RetryException expected");
-        } catch (RetryException e) {
-            assertEquals(3, e.getNumberOfFailedAttempts());
-            assertTrue(e.getLastFailedAttempt().hasException());
-            assertTrue(e.getLastFailedAttempt().getException() instanceof IOException);
-            assertTrue(e.getCause() instanceof IOException);
+            fail("Exception expected");
+        } catch (IOException ignored) {
         }
     }
 
@@ -277,12 +261,8 @@ public class RetryerBuilderTest {
                 .build();
         try {
             retryer.call(callable);
-            fail("RetryException expected");
-        } catch (RetryException e) {
-            assertEquals(3, e.getNumberOfFailedAttempts());
-            assertTrue(e.getLastFailedAttempt().hasException());
-            assertTrue(e.getLastFailedAttempt().getException() instanceof IOException);
-            assertTrue(e.getCause() instanceof IOException);
+            fail("Exception expected");
+        } catch (IOException ignored) {
         }
     }
 
@@ -301,7 +281,7 @@ public class RetryerBuilderTest {
                 .build();
         try {
             retryer.call(callable);
-            fail("RetryException expected");
+            fail("Exception expected");
         } catch (RetryException e) {
             assertEquals(3, e.getNumberOfFailedAttempts());
             assertTrue(e.getLastFailedAttempt().hasResult());
@@ -321,11 +301,8 @@ public class RetryerBuilderTest {
                 .build();
         try {
             retryer.call(callable);
-            fail("RetryException expected");
-        } catch (RetryException e) {
-            assertTrue(e.getLastFailedAttempt().hasException());
-            assertTrue(e.getLastFailedAttempt().getException() instanceof IllegalStateException);
-            assertTrue(e.getCause() instanceof IllegalStateException);
+            fail("Exception expected");
+        } catch (IllegalStateException ignored) {
         }
 
         callable = notNullResultOrIOExceptionOrRuntimeExceptionAfter5Attempts();
@@ -369,14 +346,14 @@ public class RetryerBuilderTest {
                     .build();
             try {
                 retryer.call(alwaysNull(latch));
-                fail("RetryException expected");
+                fail("Exception expected");
             } catch (RetryException e) {
                 assertTrue(!e.getLastFailedAttempt().hasException());
                 assertNull(e.getCause());
                 assertTrue(Thread.currentThread().isInterrupted());
                 result.set(true);
             } catch (Exception e) {
-                fail("RetryException expected");
+                fail("Exception expected");
             }
         };
         Thread t = new Thread(r);

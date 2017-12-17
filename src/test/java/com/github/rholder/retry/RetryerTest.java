@@ -28,172 +28,175 @@ import static org.junit.Assert.*;
 
 class RetryerTest {
 
-    @ParameterizedTest
-    @MethodSource("checkedAndUnchecked")
-    void testCallThrowsWithNoRetryOnException(Throwable throwable) throws Exception {
-        Retryer retryer = RetryerBuilder.newBuilder().build();
-        Thrower thrower = new Thrower(throwable, 5);
-        try {
-            retryer.call(thrower);
-            fail("Should have thrown");
-        } catch (Throwable e) {
-            assertSame(throwable, e);
-        }
-        assertEquals(1, thrower.invocations);
+  @ParameterizedTest
+  @MethodSource("checkedAndUnchecked")
+  void testCallThrowsWithNoRetryOnException(Class<? extends Throwable> throwable) throws Exception {
+    Retryer retryer = RetryerBuilder.newBuilder().build();
+    Thrower thrower = new Thrower(throwable, 5);
+    try {
+      retryer.call(thrower);
+      fail("Should have thrown");
+    } catch (Throwable e) {
+      assertSame(throwable, e.getClass());
+    }
+    assertEquals(1, thrower.invocations);
+  }
+
+  @ParameterizedTest
+  @MethodSource("unchecked")
+  void testRunThrowsWithNoRetryOnException(Class<? extends Throwable> throwable) throws Exception {
+    Retryer retryer = RetryerBuilder.newBuilder().build();
+    Thrower thrower = new Thrower(throwable, 5);
+    try {
+      retryer.run(thrower);
+      fail("Should have thrown");
+    } catch (Throwable e) {
+      assertSame(throwable, e.getClass());
+    }
+    assertEquals(1, thrower.invocations);
+  }
+
+  @ParameterizedTest
+  @MethodSource("checkedAndUnchecked")
+  void testCallThrowsWithRetryOnException(Class<? extends Throwable> throwable) throws Exception {
+    Retryer retryer = RetryerBuilder.newBuilder()
+        .retryIfExceptionOfType(Throwable.class)
+        .build();
+    Thrower thrower = new Thrower(throwable, 5);
+    retryer.call(thrower);
+    assertEquals(5, thrower.invocations);
+  }
+
+  @ParameterizedTest
+  @MethodSource("unchecked")
+  void testRunThrowsWithRetryOnException(Class<? extends Throwable> throwable) throws Exception {
+    Retryer retryer = RetryerBuilder.newBuilder()
+        .retryIfExceptionOfType(Throwable.class)
+        .build();
+    Thrower thrower = new Thrower(throwable, 5);
+    retryer.run(thrower);
+    assertEquals(5, thrower.invocations);
+  }
+
+  @ParameterizedTest
+  @MethodSource("checkedAndUnchecked")
+  void testCallThrowsSubclassWithRetryOnException(Class<? extends Throwable> throwable) throws Exception {
+    @SuppressWarnings("unchecked")
+    Class<? extends Throwable> superclass = (Class<? extends Throwable>) throwable.getSuperclass();
+    Retryer retryer = RetryerBuilder.newBuilder()
+        .retryIfExceptionOfType(superclass)
+        .build();
+    Thrower thrower = new Thrower(throwable, 5);
+    retryer.call(thrower);
+    assertEquals(5, thrower.invocations);
+  }
+
+  @ParameterizedTest
+  @MethodSource("unchecked")
+  void testRunThrowsSubclassWithRetryOnException(Class<? extends Throwable> throwable) throws Exception {
+    @SuppressWarnings("unchecked")
+    Class<? extends Throwable> superclass = (Class<? extends Throwable>) throwable.getSuperclass();
+    Retryer retryer = RetryerBuilder.newBuilder()
+        .retryIfExceptionOfType(superclass)
+        .build();
+    Thrower thrower = new Thrower(throwable, 5);
+    retryer.run(thrower);
+    assertEquals(5, thrower.invocations);
+  }
+
+  @ParameterizedTest
+  @MethodSource("checkedAndUnchecked")
+  void testCallThrowsWhenRetriesAreStopped(Class<? extends Throwable> throwable) throws Exception {
+    Retryer retryer = RetryerBuilder.newBuilder()
+        .retryIfExceptionOfType(throwable)
+        .withStopStrategy(StopStrategies.stopAfterAttempt(3))
+        .build();
+    Thrower thrower = new Thrower(throwable, 5);
+    try {
+      retryer.call(thrower);
+      fail("Should have thrown");
+    } catch (Throwable t) {
+      assertSame(throwable, t.getClass());
+    }
+    assertEquals(3, thrower.invocations);
+  }
+
+  @ParameterizedTest
+  @MethodSource("unchecked")
+  void testRunThrowsWhenRetriesAreStopped(Class<? extends Throwable> throwable) throws Exception {
+    Retryer retryer = RetryerBuilder.newBuilder()
+        .retryIfExceptionOfType(throwable)
+        .withStopStrategy(StopStrategies.stopAfterAttempt(3))
+        .build();
+    Thrower thrower = new Thrower(throwable, 5);
+    try {
+      retryer.run(thrower);
+      fail("Should have thrown");
+    } catch (Throwable t) {
+      assertSame(throwable, t.getClass());
+    }
+    assertEquals(3, thrower.invocations);
+  }
+
+  private static Stream<Arguments> checkedAndUnchecked() {
+    return Stream.concat(unchecked(), Stream.of(
+        Arguments.of(Exception.class),
+        Arguments.of(IOException.class)
+    ));
+  }
+
+  private static Stream<Arguments> unchecked() {
+    return Stream.of(
+        Arguments.of(Error.class),
+        Arguments.of(RuntimeException.class),
+        Arguments.of(NullPointerException.class)
+    );
+  }
+
+  private class Thrower implements Callable<Void>, Runnable {
+
+    private final Class<? extends Throwable> throwableType;
+
+    private final int successAttempt;
+
+    private int invocations = 0;
+
+    Thrower(Class<? extends Throwable> throwableType, int successAttempt) {
+      this.throwableType = throwableType;
+      this.successAttempt = successAttempt;
     }
 
-    @ParameterizedTest
-    @MethodSource("unchecked")
-    void testRunThrowsWithNoRetryOnException(Throwable throwable) throws Exception {
-        Retryer retryer = RetryerBuilder.newBuilder().build();
-        Thrower thrower = new Thrower(throwable, 5);
-        try {
-            retryer.run(thrower);
-            fail("Should have thrown");
-        } catch (Throwable e) {
-            assertSame(throwable, e);
-        }
-        assertEquals(1, thrower.invocations);
+    @Override
+    public Void call() throws Exception {
+      invocations++;
+      if (invocations == successAttempt) {
+        return null;
+      }
+      if (Error.class.isAssignableFrom(throwableType)) {
+        throw (Error) throwable();
+      }
+      throw (Exception) throwable();
     }
 
-    @ParameterizedTest
-    @MethodSource("checkedAndUnchecked")
-    void testCallThrowsWithRetryOnException(Throwable throwable) throws Exception {
-        Retryer retryer = RetryerBuilder.newBuilder()
-                .retryIfExceptionOfType(Throwable.class)
-                .build();
-        Thrower thrower = new Thrower(throwable, 5);
-        retryer.call(thrower);
-        assertEquals(5, thrower.invocations);
+    @Override
+    public void run() {
+      invocations++;
+      if (invocations == successAttempt) {
+        return;
+      }
+      if (Error.class.isAssignableFrom(throwableType)) {
+        throw (Error) throwable();
+      }
+      throw (RuntimeException) throwable();
     }
 
-    @ParameterizedTest
-    @MethodSource("unchecked")
-    void testRunThrowsWithRetryOnException(Throwable throwable) throws Exception {
-        Retryer retryer = RetryerBuilder.newBuilder()
-                .retryIfExceptionOfType(Throwable.class)
-                .build();
-        Thrower thrower = new Thrower(throwable, 5);
-        retryer.run(thrower);
-        assertEquals(5, thrower.invocations);
+    private Throwable throwable() {
+      try {
+        return throwableType.newInstance();
+      } catch (InstantiationException | IllegalAccessException e) {
+        throw new RuntimeException("Failed to create throwable of type " + throwableType);
+      }
     }
-
-    @ParameterizedTest
-    @MethodSource("checkedAndUnchecked")
-    void testCallThrowsSubclassWithRetryOnException(Throwable throwable) throws Exception {
-        @SuppressWarnings("unchecked")
-        Class<? extends Throwable> superclass =
-                (Class<? extends Throwable>) throwable.getClass().getSuperclass();
-        Retryer retryer = RetryerBuilder.newBuilder()
-                .retryIfExceptionOfType(superclass)
-                .build();
-        Thrower thrower = new Thrower(throwable, 5);
-        retryer.call(thrower);
-        assertEquals(5, thrower.invocations);
-    }
-
-    @ParameterizedTest
-    @MethodSource("unchecked")
-    void testRunThrowsSubclassWithRetryOnException(Throwable throwable) throws Exception {
-        @SuppressWarnings("unchecked")
-        Class<? extends Throwable> superclass =
-                (Class<? extends Throwable>) throwable.getClass().getSuperclass();
-        Retryer retryer = RetryerBuilder.newBuilder()
-                .retryIfExceptionOfType(superclass)
-                .build();
-        Thrower thrower = new Thrower(throwable, 5);
-        retryer.run(thrower);
-        assertEquals(5, thrower.invocations);
-    }
-
-    @ParameterizedTest
-    @MethodSource("checkedAndUnchecked")
-    void testCallThrowsWhenRetriesAreStopped(Throwable throwable) throws Exception {
-        Retryer retryer = RetryerBuilder.newBuilder()
-                .retryIfExceptionOfType(throwable.getClass())
-                .withStopStrategy(StopStrategies.stopAfterAttempt(3))
-                .build();
-        Thrower thrower = new Thrower(throwable, 5);
-        try {
-            retryer.call(thrower);
-            fail("Should have thrown");
-        } catch (RetryException e) {
-            assertSame(throwable, e.getCause());
-            assertEquals(3, e.getNumberOfFailedAttempts());
-        }
-        assertEquals(3, thrower.invocations);
-    }
-
-    @ParameterizedTest
-    @MethodSource("unchecked")
-    void testRunThrowsWhenRetriesAreStopped(Throwable throwable) throws Exception {
-        Retryer retryer = RetryerBuilder.newBuilder()
-                .retryIfExceptionOfType(throwable.getClass())
-                .withStopStrategy(StopStrategies.stopAfterAttempt(3))
-                .build();
-        Thrower thrower = new Thrower(throwable, 5);
-        try {
-            retryer.call(thrower);
-            fail("Should have thrown");
-        } catch (RetryException e) {
-            assertSame(throwable, e.getCause());
-            assertEquals(3, e.getNumberOfFailedAttempts());
-        }
-        assertEquals(3, thrower.invocations);
-    }
-
-    private static Stream<Arguments> checkedAndUnchecked() {
-        return Stream.concat(unchecked(), Stream.of(
-                Arguments.of(new Exception("oops")),
-                Arguments.of(new IOException("oops"))
-        ));
-    }
-
-    private static Stream<Arguments> unchecked() {
-        return Stream.of(
-                Arguments.of(new Error("oops")),
-                Arguments.of(new RuntimeException("oops")),
-                Arguments.of(new NullPointerException("oops"))
-        );
-    }
-
-    private class Thrower implements Callable<Void>, Runnable {
-
-        private final Throwable throwable;
-
-        private final int successAttempt;
-
-        private int invocations = 0;
-
-        Thrower(Throwable throwable, int successAttempt) {
-            this.throwable = throwable;
-            this.successAttempt = successAttempt;
-        }
-
-        @Override
-        public Void call() throws Exception {
-            invocations++;
-            if (invocations == successAttempt) {
-                return null;
-            }
-            if (throwable instanceof Error) {
-                throw (Error) throwable;
-            }
-            throw (Exception) throwable;
-        }
-
-        @Override
-        public void run() {
-            invocations++;
-            if (invocations == successAttempt) {
-                return;
-            }
-            if (throwable instanceof Error) {
-                throw (Error) throwable;
-            }
-            throw (RuntimeException) throwable;
-        }
-
-    }
-
+  }
 }
+

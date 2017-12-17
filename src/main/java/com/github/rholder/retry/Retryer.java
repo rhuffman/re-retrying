@@ -121,7 +121,15 @@ public final class Retryer {
                 return attempt.get();
             }
             if (stopStrategy.shouldStop(attempt)) {
-                throw new RetryException(attemptNumber, attempt);
+                if (!attempt.hasException()) {
+                    throw new RetryException(attemptNumber, attempt);
+                }
+                Throwable throwable = attempt.getException();
+                if (throwable instanceof Exception) {
+                    throw (Exception)throwable;
+                } else {
+                    throw (Error) throwable;
+                }
             } else {
                 long sleepTime = waitStrategy.computeSleepTime(attempt);
                 try {
