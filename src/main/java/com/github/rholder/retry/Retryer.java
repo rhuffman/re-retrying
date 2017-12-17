@@ -85,7 +85,7 @@ public final class Retryer {
     }
 
     /**
-     * Executes the given callable. If the rejection predicate
+     * Executes the given callable, retrying if necessary. If the rejection predicate
      * accepts the attempt, the stop strategy is used to decide if a new attempt
      * must be made. Then the wait strategy is used to decide how much time to sleep
      * and a new attempt is made.
@@ -93,13 +93,12 @@ public final class Retryer {
      * @param callable the callable task to be executed
      * @param <T>      the return type of the Callable
      * @return the computed result of the given callable
-     * @throws ExecutionException if the given callable throws an exception, and the
-     *                            rejection predicate considers the attempt as successful.
-     *                            The original exception is wrapped into an ExecutionException.
-     * @throws RetryException     if all the attempts failed before the stop strategy decided
-     *                            to abort, or the thread was interrupted. Note that if the thread
-     *                            is interrupted, this exception is thrown and the thread's
-     *                            interrupt status is set.
+     * @throws Exception      if the given callable throws an exception, and the
+     *                        rejection predicate considers the attempt as successful.
+     * @throws RetryException if all the attempts failed before the stop strategy decided
+     *                        to abort, or the thread was interrupted. Note that if the thread
+     *                        is interrupted, this exception is thrown and the thread's
+     *                        interrupt status is set.
      */
     public <T> T call(Callable<T> callable) throws Exception {
         long startTime = System.nanoTime();
@@ -132,6 +131,31 @@ public final class Retryer {
                     throw new RetryException(attemptNumber, attempt);
                 }
             }
+        }
+    }
+
+    /**
+     * Executes the given runnable, retrying if necessary. If the rejection predicate
+     * accepts the attempt, the stop strategy is used to decide if a new attempt
+     * must be made. Then the wait strategy is used to decide how much time to sleep
+     * and a new attempt is made.
+     *
+     * @param runnable the runnable task to be executed
+     * @throws RetryException if all the attempts failed before the stop strategy decided
+     *                        to abort, or the thread was interrupted. Note that if the thread
+     *                        is interrupted, this exception is thrown and the thread's
+     *                        interrupt status is set.
+     */
+    @SuppressWarnings("WeakerAccess")
+    public void run(Runnable runnable) throws RetryException {
+        try {
+            call(() -> {
+                runnable.run();
+                return null;
+            });
+        } catch (Exception e) {
+            Throwables.throwIfUnchecked(e);
+            throw new RuntimeException(e);
         }
     }
 

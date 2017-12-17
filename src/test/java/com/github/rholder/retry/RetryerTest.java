@@ -26,9 +26,8 @@ import static org.junit.Assert.*;
 public class RetryerTest {
 
     @Test
-    public void testError() throws Exception {
+    public void testErrorWithCallable() throws Exception {
         Retryer retryer = RetryerBuilder.newBuilder()
-                .withStopStrategy(StopStrategies.stopAfterAttempt(2))
                 .build();
         Error toThrow = new Error("oops");
         ThrowingCallable callable = new ThrowingCallable(toThrow, 2);
@@ -42,9 +41,24 @@ public class RetryerTest {
     }
 
     @Test
-    public void testRetryOnError() throws Exception {
+    public void testErrorWithRunnable() throws Exception {
         Retryer retryer = RetryerBuilder.newBuilder()
-                .withStopStrategy(StopStrategies.stopAfterAttempt(2))
+                .build();
+        Error toThrow = new Error("oops");
+        ThrowingRunnable runnable = new ThrowingRunnable(toThrow, 2);
+        try {
+            retryer.run(runnable);
+            fail("Should have thrown");
+        } catch (Error e) {
+            assertSame(toThrow, e);
+        }
+        assertEquals(1, runnable.invocations);
+    }
+
+
+    @Test
+    public void testRetryOnErrorWithCallable() throws Exception {
+        Retryer retryer = RetryerBuilder.newBuilder()
                 .retryIfExceptionOfType(Error.class)
                 .build();
         Error toThrow = new Error("oops");
@@ -54,9 +68,20 @@ public class RetryerTest {
     }
 
     @Test
-    public void testRuntimeException() throws Exception {
+    public void testRetryOnErrorWithRunnable() throws Exception {
         Retryer retryer = RetryerBuilder.newBuilder()
-                .withStopStrategy(StopStrategies.stopAfterAttempt(2))
+                .retryIfExceptionOfType(Error.class)
+                .build();
+        Error toThrow = new Error("oops");
+        ThrowingRunnable runnable = new ThrowingRunnable(toThrow, 2);
+        retryer.run(runnable);
+        assertEquals(2, runnable.invocations);
+    }
+
+
+    @Test
+    public void testRuntimeExceptionWithCallable() throws Exception {
+        Retryer retryer = RetryerBuilder.newBuilder()
                 .build();
         RuntimeException toThrow = new RuntimeException("oops");
         ThrowingCallable callable = new ThrowingCallable(toThrow, 2);
@@ -70,9 +95,23 @@ public class RetryerTest {
     }
 
     @Test
-    public void testRetryOnRuntimeException() throws Exception {
+    public void testRuntimeExceptionWithRunnable() throws Exception {
         Retryer retryer = RetryerBuilder.newBuilder()
-                .withStopStrategy(StopStrategies.stopAfterAttempt(2))
+                .build();
+        RuntimeException toThrow = new RuntimeException("oops");
+        ThrowingRunnable runnable = new ThrowingRunnable(toThrow, 2);
+        try {
+            retryer.run(runnable);
+            fail("Should have thrown");
+        } catch (RuntimeException e) {
+            assertSame(toThrow, e);
+        }
+        assertEquals(1, runnable.invocations);
+    }
+
+    @Test
+    public void testRetryOnRuntimeExceptionWithCallable() throws Exception {
+        Retryer retryer = RetryerBuilder.newBuilder()
                 .retryIfExceptionOfType(RuntimeException.class)
                 .build();
         RuntimeException toThrow = new RuntimeException("oops");
@@ -82,9 +121,19 @@ public class RetryerTest {
     }
 
     @Test
+    public void testRetryOnRuntimeExceptionWithRunnable() throws Exception {
+        Retryer retryer = RetryerBuilder.newBuilder()
+                .retryIfExceptionOfType(RuntimeException.class)
+                .build();
+        RuntimeException toThrow = new RuntimeException("oops");
+        ThrowingRunnable runnable = new ThrowingRunnable(toThrow, 2);
+        retryer.run(runnable);
+        assertEquals(2, runnable.invocations);
+    }
+
+    @Test
     public void testCheckedException() throws Exception {
         Retryer retryer = RetryerBuilder.newBuilder()
-                .withStopStrategy(StopStrategies.stopAfterAttempt(2))
                 .build();
         Exception toThrow = new Exception("oops");
         ThrowingCallable callable = new ThrowingCallable(toThrow, 2);
@@ -99,7 +148,6 @@ public class RetryerTest {
     @Test
     public void testRetryOnCheckedException() throws Exception {
         Retryer retryer = RetryerBuilder.newBuilder()
-                .withStopStrategy(StopStrategies.stopAfterAttempt(2))
                 .retryIfExceptionOfType(Exception.class)
                 .build();
         Exception toThrow = new Exception("oops");
@@ -115,7 +163,6 @@ public class RetryerTest {
     @Test
     public void testRetryOnSubclassOfCheckedException() throws Exception {
         Retryer retryer = RetryerBuilder.newBuilder()
-                .withStopStrategy(StopStrategies.stopAfterAttempt(2))
                 .retryIfExceptionOfType(Exception.class)
                 .build();
         NullPointerException toThrow = new NullPointerException("oops");
@@ -154,6 +201,40 @@ public class RetryerTest {
                 throw (Error)throwable;
             }
             throw (Exception)throwable;
+        }
+    }
+
+    private class ThrowingRunnable implements Runnable {
+
+        private final Throwable throwable;
+
+        private final int successAttempt;
+
+        private int invocations = 0;
+
+        ThrowingRunnable(RuntimeException throwable, int successAttempt) {
+            this.throwable = throwable;
+            this.successAttempt = successAttempt;
+        }
+
+        ThrowingRunnable(Error throwable, int successAttempt) {
+            this.throwable = throwable;
+            this.successAttempt = successAttempt;
+        }
+
+        @Override
+        public void run() {
+            if (invocations == Integer.MAX_VALUE) {
+                throw new RuntimeException("Already invoked the maximum number of times");
+            }
+            invocations++;
+            if (invocations == successAttempt) {
+                return;
+            }
+            if (throwable instanceof Error) {
+                throw (Error)throwable;
+            }
+            throw (RuntimeException)throwable;
         }
     }
 
