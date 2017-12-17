@@ -35,8 +35,8 @@ public class RetryerTest {
         try {
             retryer.call(callable);
             fail("Should have thrown");
-        } catch (ExecutionException e) {
-            assertSame(toThrow, e.getCause());
+        } catch (Error e) {
+            assertSame(toThrow, e);
         }
         assertEquals(1, callable.invocations);
     }
@@ -63,8 +63,8 @@ public class RetryerTest {
         try {
             retryer.call(callable);
             fail("Should have thrown");
-        } catch (ExecutionException e) {
-            assertSame(toThrow, e.getCause());
+        } catch (RuntimeException e) {
+            assertSame(toThrow, e);
         }
         assertEquals(1, callable.invocations);
     }
@@ -90,8 +90,8 @@ public class RetryerTest {
         ThrowingCallable callable = new ThrowingCallable(toThrow, 2);
         try {
             retryer.call(callable);
-        } catch (ExecutionException e) {
-            assertSame(toThrow, e.getCause());
+        } catch (Exception e) {
+            assertSame(toThrow, e);
         }
         assertEquals(1, callable.invocations);
     }

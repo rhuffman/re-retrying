@@ -388,7 +388,7 @@ public final class WaitStrategies {
     @Override
     public long computeSleepTime(Attempt lastAttempt) {
       if (lastAttempt.hasException()) {
-        Throwable cause = lastAttempt.getExceptionCause();
+        Throwable cause = lastAttempt.getException();
         if (exceptionClass.isAssignableFrom(cause.getClass())) {
           return function.apply((T) cause);
         }

@@ -35,19 +35,17 @@ public class AttemptTimeLimiterTest {
             .build();
 
     @Test
-    public void testAttemptTimeLimit() throws ExecutionException, RetryException {
+    public void testAttemptTimeLimit() throws Exception {
         try {
             r.call(new SleepyOut(0L));
-        } catch (ExecutionException e) {
+        } catch (Exception e) {
             Assert.fail("Should not timeout");
         }
 
         try {
             r.call(new SleepyOut(10 * 1000L));
             Assert.fail("Expected timeout exception");
-        } catch (ExecutionException e) {
-            // expected
-            Assert.assertEquals(TimeoutException.class, e.getCause().getClass());
+        } catch (TimeoutException ignored) {
         }
     }
 

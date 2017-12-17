@@ -18,6 +18,7 @@
 package com.github.rholder.retry;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
@@ -100,7 +101,7 @@ public final class Retryer {
      *                            is interrupted, this exception is thrown and the thread's
      *                            interrupt status is set.
      */
-    public <T> T call(Callable<T> callable) throws ExecutionException, RetryException {
+    public <T> T call(Callable<T> callable) throws Exception {
         long startTime = System.nanoTime();
         for (int attemptNumber = 1; ; attemptNumber++) {
             Attempt<T> attempt;
@@ -196,7 +197,7 @@ public final class Retryer {
         }
 
         @Override
-        public Throwable getExceptionCause() throws IllegalStateException {
+        public Throwable getException() throws IllegalStateException {
             throw new IllegalStateException("The attempt resulted in a result, not in an exception");
         }
 
@@ -213,19 +214,20 @@ public final class Retryer {
 
     @Immutable
     static final class ExceptionAttempt<T> implements Attempt<T> {
-        private final ExecutionException e;
+        private final Throwable throwable;
         private final long attemptNumber;
         private final long delaySinceFirstAttempt;
 
         ExceptionAttempt(Throwable cause, long attemptNumber, long delaySinceFirstAttempt) {
-            this.e = new ExecutionException(cause);
+            this.throwable = cause;
             this.attemptNumber = attemptNumber;
             this.delaySinceFirstAttempt = delaySinceFirstAttempt;
         }
 
         @Override
-        public T get() throws ExecutionException {
-            throw e;
+        public T get() throws Exception {
+            Throwables.throwIfUnchecked(throwable);
+            throw (Exception) throwable;
         }
 
         @Override
@@ -243,9 +245,10 @@ public final class Retryer {
             throw new IllegalStateException("The attempt resulted in an exception, not in a result");
         }
 
+
         @Override
-        public Throwable getExceptionCause() throws IllegalStateException {
-            return e.getCause();
+        public Throwable getException() throws IllegalStateException {
+            return throwable;
         }
 
         @Override
@@ -281,7 +284,7 @@ public final class Retryer {
          * @see Retryer#call(Callable)
          */
         @Override
-        public T call() throws ExecutionException, RetryException {
+        public T call() throws Exception {
             return retryer.call(callable);
         }
     }

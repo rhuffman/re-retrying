@@ -207,7 +207,7 @@ public class RetryerBuilder {
         @Override
         public boolean test(Attempt<?> attempt) {
             return attempt.hasException() &&
-                    exceptionClass.isAssignableFrom(attempt.getExceptionCause().getClass());
+                    exceptionClass.isAssignableFrom(attempt.getException().getClass());
         }
     }
 
@@ -244,7 +244,7 @@ public class RetryerBuilder {
 
         @Override
         public boolean test(Attempt<?> attempt) {
-            return attempt.hasException() && delegate.test(attempt.getExceptionCause());
+            return attempt.hasException() && delegate.test(attempt.getException());
         }
     }
 }

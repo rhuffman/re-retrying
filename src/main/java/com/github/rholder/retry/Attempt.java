@@ -17,8 +17,6 @@
 
 package com.github.rholder.retry;
 
-import java.util.concurrent.ExecutionException;
-
 /**
  * An attempt of a call, which resulted either in a result returned by the call,
  * or in a Throwable thrown by the call.
@@ -32,10 +30,10 @@ public interface Attempt<T> {
      * Returns the result of the attempt, if any.
      *
      * @return the result of the attempt
-     * @throws ExecutionException if an exception was thrown by the attempt. The thrown
-     *                            exception is set as the cause of the ExecutionException
+     * @throws Exception Exception thrown by the Callable or Runnable, if the
+     *         exception did not cause a retry.
      */
-    T get() throws ExecutionException;
+    T get() throws Exception;
 
     /**
      * Tells if the call returned a result or not
@@ -69,7 +67,7 @@ public interface Attempt<T> {
      * @throws IllegalStateException if the call didn't throw an exception,
      *                               as indicated by {@link #hasException()}
      */
-    Throwable getExceptionCause() throws IllegalStateException;
+    Throwable getException() throws IllegalStateException;
 
     /**
      * The number, starting from 1, of this attempt.

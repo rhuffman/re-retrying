@@ -56,7 +56,8 @@ public final class RetryException extends Exception {
      * @param lastFailedAttempt      what happened the last time we failed
      */
     private RetryException(String message, int numberOfFailedAttempts, Attempt<?> lastFailedAttempt) {
-        super(message, checkNotNull(lastFailedAttempt, "Last attempt was null").hasException() ? lastFailedAttempt.getExceptionCause() : null);
+        super(message, checkNotNull(lastFailedAttempt, "Last attempt was null").hasException() ?
+                lastFailedAttempt.getException() : null);
         this.numberOfFailedAttempts = numberOfFailedAttempts;
         this.lastFailedAttempt = lastFailedAttempt;
     }
