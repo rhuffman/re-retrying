@@ -60,7 +60,6 @@ public class AttemptTimeLimiterTest {
         @Override
         public Void call() throws Exception {
             Thread.sleep(sleepMs);
-            System.out.println("I'm awake now");
             return null;
         }
     }
