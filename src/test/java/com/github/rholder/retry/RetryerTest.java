@@ -106,6 +106,41 @@ class RetryerTest {
         assertEquals(5, thrower.invocations);
     }
 
+    @ParameterizedTest
+    @MethodSource("checkedAndUnchecked")
+    void testCallThrowsWhenRetriesAreStopped(Throwable throwable) throws Exception {
+        Retryer retryer = RetryerBuilder.newBuilder()
+                .retryIfExceptionOfType(throwable.getClass())
+                .withStopStrategy(StopStrategies.stopAfterAttempt(3))
+                .build();
+        Thrower thrower = new Thrower(throwable, 5);
+        try {
+            retryer.call(thrower);
+            fail("Should have thrown");
+        } catch (RetryException e) {
+            assertSame(throwable, e.getCause());
+            assertEquals(3, e.getNumberOfFailedAttempts());
+        }
+        assertEquals(3, thrower.invocations);
+    }
+
+    @ParameterizedTest
+    @MethodSource("unchecked")
+    void testRunThrowsWhenRetriesAreStopped(Throwable throwable) throws Exception {
+        Retryer retryer = RetryerBuilder.newBuilder()
+                .retryIfExceptionOfType(throwable.getClass())
+                .withStopStrategy(StopStrategies.stopAfterAttempt(3))
+                .build();
+        Thrower thrower = new Thrower(throwable, 5);
+        try {
+            retryer.call(thrower);
+            fail("Should have thrown");
+        } catch (RetryException e) {
+            assertSame(throwable, e.getCause());
+            assertEquals(3, e.getNumberOfFailedAttempts());
+        }
+        assertEquals(3, thrower.invocations);
+    }
 
     private static Stream<Arguments> checkedAndUnchecked() {
         return Stream.concat(unchecked(), Stream.of(
