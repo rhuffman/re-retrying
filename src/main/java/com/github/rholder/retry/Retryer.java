@@ -93,33 +93,21 @@ public final class Retryer {
      * @param callable the callable task to be executed
      * @param <T>      the return type of the Callable
      * @return the computed result of the given callable
-     * @throws Exception      if the given callable throws an exception, and the
-     *                        rejection predicate considers the attempt as successful.
-     * @throws RetryException if all the attempts failed before the stop strategy decided
-     *                        to abort, or the thread was interrupted. Note that if the thread
-     *                        is interrupted, this exception is thrown and the thread's
-     *                        interrupt status is set.
+     * @throws Exception            if the given callable throws an exception, and the
+     *                              rejection predicate considers the attempt as successful.
+     * @throws InterruptedException if the current thread is interrupted
+     * @throws RetryException       if all the attempts failed and the last attempt
+     *                              ended with a result rather than an exception.
      */
     public <T> T call(Callable<T> callable) throws Exception {
         long startTime = System.nanoTime();
         for (int attemptNumber = 1; ; attemptNumber++) {
-            Attempt<T> attempt;
-            try {
-                T result = attemptTimeLimiter.call(callable);
-                long delaySinceFirstAttempt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
-                attempt = new ResultAttempt<>(result, attemptNumber, delaySinceFirstAttempt);
-            } catch (Throwable t) {
-                long delaySinceFirstAttempt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
-                attempt = new ExceptionAttempt<>(t, attemptNumber, delaySinceFirstAttempt);
-            }
 
-            for (RetryListener listener : listeners) {
-                listener.onRetry(attempt);
-            }
-
-            if (!test(attempt)) {
+            Attempt<T> attempt = makeAttempt(callable, startTime, attemptNumber);
+            if (!shouldReject(attempt)) {
                 return attempt.get();
             }
+
             if (stopStrategy.shouldStop(attempt)) {
                 if (!attempt.hasException()) {
                     throw new RetryException(attemptNumber, attempt);
@@ -138,16 +126,38 @@ public final class Retryer {
     }
 
     /**
+     * Executes the given callable, retrying if necessary. If the rejection predicate
+     * accepts the attempt, the stop strategy is used to decide if a new attempt
+     * must be made. Then the wait strategy is used to decide how much time to sleep
+     * and a new attempt is made.
+     *
+     * @param callable the callable task to be executed
+     * @param <T>      the return type of the Callable
+     * @return the computed result of the given callable
+     * @throws UncheckedRetryException if all the attempts failed and the last attempt
+     *                                 ended with a result rather than an exception.
+     */
+    @SuppressWarnings("WeakerAccess")
+    public <T> T callUnchecked(Callable<T> callable) throws UncheckedRetryException {
+        try {
+            return call(callable);
+        } catch (RetryException e) {
+            throw new UncheckedRetryException(e.getNumberOfFailedAttempts(), e.getLastFailedAttempt());
+        } catch (Exception e) {
+            Throwables.throwIfUnchecked(e);
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
      * Executes the given runnable, retrying if necessary. If the rejection predicate
      * accepts the attempt, the stop strategy is used to decide if a new attempt
      * must be made. Then the wait strategy is used to decide how much time to sleep
      * and a new attempt is made.
      *
      * @param runnable the runnable task to be executed
-     * @throws RetryException if all the attempts failed before the stop strategy decided
-     *                        to abort, or the thread was interrupted. Note that if the thread
-     *                        is interrupted, this exception is thrown and the thread's
-     *                        interrupt status is set.
+     * @throws RetryException if all the attempts failed and the last attempt
+     *                        ended with a result rather than an exception.
      */
     @SuppressWarnings("WeakerAccess")
     public void run(Runnable runnable) throws RetryException {
@@ -163,18 +173,21 @@ public final class Retryer {
     }
 
     /**
-     * Applies the rejection predicates to the attempt, in order, until either one
-     * predicate returns true or all predicates return false.
+     * Executes the given runnable, retrying if necessary. If the rejection predicate
+     * accepts the attempt, the stop strategy is used to decide if a new attempt
+     * must be made. Then the wait strategy is used to decide how much time to sleep
+     * and a new attempt is made.
      *
-     * @param attempt The attempt made by invoking the call
+     * @param runnable the runnable task to be executed
+     * @throws UncheckedRetryException if all the attempts failed and the last attempt
+     *                                 ended with a result rather than an exception.
      */
-    private boolean test(Attempt<?> attempt) {
-        for (Predicate<Attempt<?>> predicate : rejectionPredicates) {
-            if (predicate.test(attempt)) {
-                return true;
-            }
-        }
-        return false;
+    @SuppressWarnings("WeakerAccess")
+    public void runUnchecked(Runnable runnable) throws UncheckedRetryException {
+        callUnchecked(() -> {
+            runnable.run();
+            return null;
+        });
     }
 
     /**
@@ -189,6 +202,48 @@ public final class Retryer {
     @SuppressWarnings("WeakerAccess")
     public <T> RetryerCallable<T> wrap(Callable<T> callable) {
         return new RetryerCallable<>(this, callable);
+    }
+
+    /**
+     * Attempts to invoke the callable, notifying listeners of the attempt.
+     *
+     * @param callable      The callable to invoke
+     * @param startTime     The time of the first attempt
+     * @param attemptNumber The number of this attempt
+     * @param <T>           The return type of the callable
+     * @return An Attempt, which will contain either a result or an exception
+     */
+    private <T> Attempt<T> makeAttempt(Callable<T> callable, long startTime, int attemptNumber) {
+        Attempt<T> attempt;
+        try {
+            T result = attemptTimeLimiter.call(callable);
+            long delaySinceFirstAttempt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
+            attempt = new ResultAttempt<>(result, attemptNumber, delaySinceFirstAttempt);
+        } catch (Throwable t) {
+            long delaySinceFirstAttempt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
+            attempt = new ExceptionAttempt<>(t, attemptNumber, delaySinceFirstAttempt);
+        }
+
+        for (RetryListener listener : listeners) {
+            listener.onRetry(attempt);
+        }
+
+        return attempt;
+    }
+
+    /**
+     * Applies the rejection predicates to the attempt, in order, until either one
+     * predicate returns true or all predicates return false.
+     *
+     * @param attempt The attempt made by invoking the call
+     */
+    private boolean shouldReject(Attempt<?> attempt) {
+        for (Predicate<Attempt<?>> predicate : rejectionPredicates) {
+            if (predicate.test(attempt)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Immutable

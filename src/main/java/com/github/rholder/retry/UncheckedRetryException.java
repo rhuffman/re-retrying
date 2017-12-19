@@ -1,6 +1,5 @@
 /*
- * Copyright 2012-2015 Ray Holder
- * Modifications copyright 2017 Robert Huffman
+ * Copyright 2017 Robert Huffman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,12 +23,10 @@ import javax.annotation.concurrent.Immutable;
  * An exception indicating that none of the attempts of the {@link Retryer}
  * succeeded. This is thrown only if the Retryer has a result predicate and
  * the result predicate failed on the last attempt.
- *
- * @author JB
  */
 @SuppressWarnings("WeakerAccess")
 @Immutable
-public final class RetryException extends Exception {
+public final class UncheckedRetryException extends Exception {
 
     private final int numberOfFailedAttempts;
     private final Attempt<?> lastFailedAttempt;
@@ -41,7 +38,7 @@ public final class RetryException extends Exception {
      * @param numberOfFailedAttempts times we've tried and failed
      * @param lastFailedAttempt      what happened the last time we failed
      */
-    RetryException(int numberOfFailedAttempts, @Nonnull Attempt<?> lastFailedAttempt) {
+    UncheckedRetryException(int numberOfFailedAttempts, @Nonnull Attempt<?> lastFailedAttempt) {
         super("Retrying failed to complete successfully after " + numberOfFailedAttempts + " attempts.");
         this.numberOfFailedAttempts = numberOfFailedAttempts;
         this.lastFailedAttempt = lastFailedAttempt;
