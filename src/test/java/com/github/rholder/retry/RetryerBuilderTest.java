@@ -347,13 +347,11 @@ public class RetryerBuilderTest {
             try {
                 retryer.call(alwaysNull(latch));
                 fail("Exception expected");
-            } catch (RetryException e) {
-                assertTrue(!e.getLastFailedAttempt().hasException());
-                assertNull(e.getCause());
-                assertTrue(Thread.currentThread().isInterrupted());
+            } catch (InterruptedException e) {
                 result.set(true);
             } catch (Exception e) {
-                fail("Exception expected");
+                System.out.println("Unexpected exception in test runnable: " + e);
+                e.printStackTrace();
             }
         };
         Thread t = new Thread(r);

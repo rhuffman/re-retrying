@@ -126,18 +126,13 @@ public final class Retryer {
                 }
                 Throwable throwable = attempt.getException();
                 if (throwable instanceof Exception) {
-                    throw (Exception)throwable;
+                    throw (Exception) throwable;
                 } else {
                     throw (Error) throwable;
                 }
             } else {
                 long sleepTime = waitStrategy.computeSleepTime(attempt);
-                try {
-                    blockStrategy.block(sleepTime);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    throw new RetryException(attemptNumber, attempt);
-                }
+                blockStrategy.block(sleepTime);
             }
         }
     }
