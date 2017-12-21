@@ -350,7 +350,8 @@ public class RetryerBuilderTest {
             } catch (InterruptedException e) {
                 result.set(true);
             } catch (Exception e) {
-                System.out.println("Runnable failed: " + e);
+                System.out.println("Unexpected exception in test runnable: " + e);
+                e.printStackTrace();
             }
         };
         Thread t = new Thread(r);
