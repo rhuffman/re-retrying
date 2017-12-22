@@ -16,6 +16,7 @@
 
 package com.github.rholder.retry;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -138,6 +139,38 @@ class RetryerTest {
     assertEquals(3, thrower.invocations);
   }
 
+  @Test
+  void testCallThatIsInterrupted() throws Exception {
+    Retryer retryer = RetryerBuilder.newBuilder()
+            .retryIfException()
+            .withStopStrategy(StopStrategies.stopAfterAttempt(10))
+            .build();
+    Interrupter thrower = new Interrupter(4);
+    try {
+      retryer.call(thrower);
+    } catch(InterruptedException ignored) {
+    }
+
+    assertTrue(Thread.interrupted());
+    assertEquals(4, thrower.invocations);
+  }
+
+  @Test
+  void testRunThatIsInterrupted() throws Exception {
+    Retryer retryer = RetryerBuilder.newBuilder()
+            .retryIfException()
+            .withStopStrategy(StopStrategies.stopAfterAttempt(10))
+            .build();
+    Interrupter thrower = new Interrupter(4);
+    try {
+      retryer.run(thrower);
+    } catch(InterruptedException ignored) {
+    }
+
+    assertTrue(Thread.interrupted());
+    assertEquals(4, thrower.invocations);
+  }
+
   private static Stream<Arguments> checkedAndUnchecked() {
     return Stream.concat(unchecked(), Stream.of(
         Arguments.of(Exception.class),
@@ -151,6 +184,38 @@ class RetryerTest {
         Arguments.of(RuntimeException.class),
         Arguments.of(NullPointerException.class)
     );
+  }
+
+  /**
+   * Callable that throws an exception on a specified attempt (indexed starting with 1).
+   * Calls before the interrupt attempt throw an Exception.
+   */
+  private class Interrupter implements Callable<Void>, Runnable {
+
+    private final int interruptAttempt;
+
+    private int invocations;
+
+    Interrupter(int interruptAttempt) {
+      this.interruptAttempt = interruptAttempt;
+    }
+
+    @Override
+    public Void call() {
+      invocations++;
+      if (invocations == interruptAttempt) {
+        Thread.currentThread().interrupt();
+        return null;
+      } else {
+        throw new RuntimeException();
+      }
+    }
+
+    @Override
+    public void run() throws RuntimeException {
+      call();
+    }
+
   }
 
   private class Thrower implements Callable<Void>, Runnable {
