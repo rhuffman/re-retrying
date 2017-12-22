@@ -140,7 +140,7 @@ public class RetryerBuilderTest {
         try {
             retryer.call(callable);
             fail("Exception expected");
-        } catch (IOException ignored) {
+        } catch (RetryException ignored) {
         }
 
         callable = noIllegalStateExceptionAfter5Attempts();
@@ -151,7 +151,7 @@ public class RetryerBuilderTest {
         try {
             retryer.call(callable);
             fail("Exception expected");
-        } catch (IllegalStateException ignored) {
+        } catch (RetryException ignored) {
         }
     }
 
@@ -194,7 +194,7 @@ public class RetryerBuilderTest {
         try {
             retryer.call(callable);
             fail("IOException expected");
-        } catch (IOException ignored) {
+        } catch (RetryException ignored) {
         }
 
         callable = noIllegalStateExceptionAfter5Attempts();
@@ -208,7 +208,7 @@ public class RetryerBuilderTest {
         try {
             retryer.call(callable);
             fail("Exception expected");
-        } catch (IllegalStateException ignored) {
+        } catch (RetryException ignored) {
         }
     }
 
@@ -224,7 +224,7 @@ public class RetryerBuilderTest {
         try {
             retryer.call(callable);
             fail("IllegalStateException expected");
-        } catch (IllegalStateException ignored) {
+        } catch (RetryException ignored) {
         }
 
         callable = noIOExceptionAfter5Attempts();
@@ -235,7 +235,7 @@ public class RetryerBuilderTest {
         try {
             retryer.call(callable);
             fail("Exception expected");
-        } catch (IOException ignored) {
+        } catch (RetryException ignored) {
         }
     }
 
@@ -251,7 +251,7 @@ public class RetryerBuilderTest {
         try {
             retryer.call(callable);
             fail("ExecutionException expected");
-        } catch (IllegalStateException ignored) {
+        } catch (RetryException ignored) {
         }
 
         callable = noIOExceptionAfter5Attempts();
@@ -262,7 +262,7 @@ public class RetryerBuilderTest {
         try {
             retryer.call(callable);
             fail("Exception expected");
-        } catch (IOException ignored) {
+        } catch (RetryException ignored) {
         }
     }
 
@@ -302,7 +302,7 @@ public class RetryerBuilderTest {
         try {
             retryer.call(callable);
             fail("Exception expected");
-        } catch (IllegalStateException ignored) {
+        } catch (RetryException ignored) {
         }
 
         callable = notNullResultOrIOExceptionOrRuntimeExceptionAfter5Attempts();

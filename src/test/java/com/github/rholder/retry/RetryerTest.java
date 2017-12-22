@@ -36,8 +36,8 @@ class RetryerTest {
     try {
       retryer.call(thrower);
       fail("Should have thrown");
-    } catch (Throwable e) {
-      assertSame(throwable, e.getClass());
+    } catch (RetryException e) {
+      assertSame(e.getCause().getClass(), throwable);
     }
     assertEquals(1, thrower.invocations);
   }
@@ -50,8 +50,8 @@ class RetryerTest {
     try {
       retryer.run(thrower);
       fail("Should have thrown");
-    } catch (Throwable e) {
-      assertSame(throwable, e.getClass());
+    } catch (RetryException e) {
+      assertSame(e.getCause().getClass(), throwable);
     }
     assertEquals(1, thrower.invocations);
   }
@@ -115,8 +115,8 @@ class RetryerTest {
     try {
       retryer.call(thrower);
       fail("Should have thrown");
-    } catch (Throwable t) {
-      assertSame(throwable, t.getClass());
+    } catch (RetryException e) {
+      assertSame(e.getCause().getClass(), throwable);
     }
     assertEquals(3, thrower.invocations);
   }
@@ -132,8 +132,8 @@ class RetryerTest {
     try {
       retryer.run(thrower);
       fail("Should have thrown");
-    } catch (Throwable t) {
-      assertSame(throwable, t.getClass());
+    } catch (RetryException e) {
+      assertSame(e.getCause().getClass(), throwable);
     }
     assertEquals(3, thrower.invocations);
   }

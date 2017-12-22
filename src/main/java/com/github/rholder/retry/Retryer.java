@@ -18,14 +18,12 @@
 package com.github.rholder.retry;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
@@ -93,14 +91,14 @@ public final class Retryer {
      * @param callable the callable task to be executed
      * @param <T>      the return type of the Callable
      * @return the computed result of the given callable
-     * @throws Exception      if the given callable throws an exception, and the
-     *                        rejection predicate considers the attempt as successful.
-     * @throws RetryException if all the attempts failed before the stop strategy decided
-     *                        to abort, or the thread was interrupted. Note that if the thread
-     *                        is interrupted, this exception is thrown and the thread's
-     *                        interrupt status is set.
+     * @throws RetryException       if all the attempts failed before the stop strategy decided
+     *                              to abort, or the thread was interrupted. Note that if the thread
+     *                              is interrupted, this exception is thrown and the thread's
+     *                              interrupt status is set.
+     * @throws InterruptedException If this thread is interrupted. This can happen because
+     *                              {@link Thread#sleep} is invoked between attempts
      */
-    public <T> T call(Callable<T> callable) throws Exception {
+    public <T> T call(Callable<T> callable) throws RetryException, InterruptedException {
         long startTime = System.nanoTime();
         for (int attemptNumber = 1; ; attemptNumber++) {
             Attempt<T> attempt;
@@ -112,24 +110,18 @@ public final class Retryer {
                 long delaySinceFirstAttempt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
                 attempt = new ExceptionAttempt<>(t, attemptNumber, delaySinceFirstAttempt);
             }
-
             for (RetryListener listener : listeners) {
                 listener.onRetry(attempt);
             }
 
-            if (!test(attempt)) {
-                return attempt.get();
+            if (!shouldReject(attempt)) {
+                if (attempt.hasResult()) {
+                    return attempt.get();
+                }
+                throw new RetryException(attemptNumber, attempt);
             }
             if (stopStrategy.shouldStop(attempt)) {
-                if (!attempt.hasException()) {
-                    throw new RetryException(attemptNumber, attempt);
-                }
-                Throwable throwable = attempt.getException();
-                if (throwable instanceof Exception) {
-                    throw (Exception) throwable;
-                } else {
-                    throw (Error) throwable;
-                }
+                throw new RetryException(attemptNumber, attempt);
             } else {
                 long sleepTime = waitStrategy.computeSleepTime(attempt);
                 blockStrategy.block(sleepTime);
@@ -150,16 +142,11 @@ public final class Retryer {
      *                        interrupt status is set.
      */
     @SuppressWarnings("WeakerAccess")
-    public void run(Runnable runnable) throws RetryException {
-        try {
-            call(() -> {
-                runnable.run();
-                return null;
-            });
-        } catch (Exception e) {
-            Throwables.throwIfUnchecked(e);
-            throw new RuntimeException(e);
-        }
+    public void run(Runnable runnable) throws RetryException, InterruptedException {
+        call(() -> {
+            runnable.run();
+            return null;
+        });
     }
 
     /**
@@ -168,7 +155,7 @@ public final class Retryer {
      *
      * @param attempt The attempt made by invoking the call
      */
-    private boolean test(Attempt<?> attempt) {
+    private boolean shouldReject(Attempt<?> attempt) {
         for (Predicate<Attempt<?>> predicate : rejectionPredicates) {
             if (predicate.test(attempt)) {
                 return true;
@@ -204,7 +191,7 @@ public final class Retryer {
         }
 
         @Override
-        public T get() throws ExecutionException {
+        public T get() {
             return result;
         }
 
@@ -252,9 +239,8 @@ public final class Retryer {
         }
 
         @Override
-        public T get() throws Exception {
-            Throwables.throwIfUnchecked(throwable);
-            throw (Exception) throwable;
+        public T get() {
+            throw new IllegalStateException("The attempt resulted in an exception, not in a result");
         }
 
         @Override
