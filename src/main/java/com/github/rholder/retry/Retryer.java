@@ -18,14 +18,12 @@
 package com.github.rholder.retry;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
@@ -93,31 +91,37 @@ public final class Retryer {
      * @param callable the callable task to be executed
      * @param <T>      the return type of the Callable
      * @return the computed result of the given callable
-     * @throws Exception            if the given callable throws an exception, and the
-     *                              rejection predicate considers the attempt as successful.
-     * @throws InterruptedException if the current thread is interrupted
-     * @throws RetryException       if all the attempts failed and the last attempt
-     *                              ended with a result rather than an exception.
+     * @throws RetryException       if all the attempts failed before the stop strategy decided
+     *                              to abort, or the thread was interrupted. Note that if the thread
+     *                              is interrupted, this exception is thrown and the thread's
+     *                              interrupt status is set.
+     * @throws InterruptedException If this thread is interrupted. This can happen because
+     *                              {@link Thread#sleep} is invoked between attempts
      */
-    public <T> T call(Callable<T> callable) throws Exception {
+    public <T> T call(Callable<T> callable) throws RetryException, InterruptedException {
         long startTime = System.nanoTime();
         for (int attemptNumber = 1; ; attemptNumber++) {
-
-            Attempt<T> attempt = makeAttempt(callable, startTime, attemptNumber);
-            if (!shouldReject(attempt)) {
-                return attempt.get();
+            Attempt<T> attempt;
+            try {
+                T result = attemptTimeLimiter.call(callable);
+                long delaySinceFirstAttempt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
+                attempt = new ResultAttempt<>(result, attemptNumber, delaySinceFirstAttempt);
+            } catch (Throwable t) {
+                long delaySinceFirstAttempt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
+                attempt = new ExceptionAttempt<>(t, attemptNumber, delaySinceFirstAttempt);
+            }
+            for (RetryListener listener : listeners) {
+                listener.onRetry(attempt);
             }
 
+            if (!shouldReject(attempt)) {
+                if (attempt.hasResult()) {
+                    return attempt.get();
+                }
+                throw new RetryException(attemptNumber, attempt);
+            }
             if (stopStrategy.shouldStop(attempt)) {
-                if (!attempt.hasException()) {
-                    throw new RetryException(attemptNumber, attempt);
-                }
-                Throwable throwable = attempt.getException();
-                if (throwable instanceof Exception) {
-                    throw (Exception) throwable;
-                } else {
-                    throw (Error) throwable;
-                }
+                throw new RetryException(attemptNumber, attempt);
             } else {
                 long sleepTime = waitStrategy.computeSleepTime(attempt);
                 blockStrategy.block(sleepTime);
@@ -126,109 +130,23 @@ public final class Retryer {
     }
 
     /**
-     * Executes the given callable, retrying if necessary. If the rejection predicate
-     * accepts the attempt, the stop strategy is used to decide if a new attempt
-     * must be made. Then the wait strategy is used to decide how much time to sleep
-     * and a new attempt is made.
-     *
-     * @param callable the callable task to be executed
-     * @param <T>      the return type of the Callable
-     * @return the computed result of the given callable
-     * @throws UncheckedRetryException if all the attempts failed and the last attempt
-     *                                 ended with a result rather than an exception.
-     */
-    @SuppressWarnings("WeakerAccess")
-    public <T> T callUnchecked(Callable<T> callable) throws UncheckedRetryException {
-        try {
-            return call(callable);
-        } catch (RetryException e) {
-            throw new UncheckedRetryException(e.getNumberOfFailedAttempts(), e.getLastFailedAttempt());
-        } catch (Exception e) {
-            Throwables.throwIfUnchecked(e);
-            throw new RuntimeException(e);
-        }
-    }
-
-    /**
      * Executes the given runnable, retrying if necessary. If the rejection predicate
      * accepts the attempt, the stop strategy is used to decide if a new attempt
      * must be made. Then the wait strategy is used to decide how much time to sleep
      * and a new attempt is made.
      *
      * @param runnable the runnable task to be executed
-     * @throws RetryException if all the attempts failed and the last attempt
-     *                        ended with a result rather than an exception.
+     * @throws RetryException if all the attempts failed before the stop strategy decided
+     *                        to abort, or the thread was interrupted. Note that if the thread
+     *                        is interrupted, this exception is thrown and the thread's
+     *                        interrupt status is set.
      */
     @SuppressWarnings("WeakerAccess")
-    public void run(Runnable runnable) throws RetryException {
-        try {
-            call(() -> {
-                runnable.run();
-                return null;
-            });
-        } catch (Exception e) {
-            Throwables.throwIfUnchecked(e);
-            throw new RuntimeException(e);
-        }
-    }
-
-    /**
-     * Executes the given runnable, retrying if necessary. If the rejection predicate
-     * accepts the attempt, the stop strategy is used to decide if a new attempt
-     * must be made. Then the wait strategy is used to decide how much time to sleep
-     * and a new attempt is made.
-     *
-     * @param runnable the runnable task to be executed
-     * @throws UncheckedRetryException if all the attempts failed and the last attempt
-     *                                 ended with a result rather than an exception.
-     */
-    @SuppressWarnings("WeakerAccess")
-    public void runUnchecked(Runnable runnable) throws UncheckedRetryException {
-        callUnchecked(() -> {
+    public void run(Runnable runnable) throws RetryException, InterruptedException {
+        call(() -> {
             runnable.run();
             return null;
         });
-    }
-
-    /**
-     * Wraps the given {@link Callable} in a {@link RetryerCallable}, which can
-     * be submitted to an executor. The returned {@link RetryerCallable} uses
-     * this {@link Retryer} instance to call the given {@link Callable}.
-     *
-     * @param callable the callable to wrap
-     * @param <T>      the return type of the Callable
-     * @return a {@link RetryerCallable} that behaves like the given {@link Callable} with retry behavior defined by this {@link Retryer}
-     */
-    @SuppressWarnings("WeakerAccess")
-    public <T> RetryerCallable<T> wrap(Callable<T> callable) {
-        return new RetryerCallable<>(this, callable);
-    }
-
-    /**
-     * Attempts to invoke the callable, notifying listeners of the attempt.
-     *
-     * @param callable      The callable to invoke
-     * @param startTime     The time of the first attempt
-     * @param attemptNumber The number of this attempt
-     * @param <T>           The return type of the callable
-     * @return An Attempt, which will contain either a result or an exception
-     */
-    private <T> Attempt<T> makeAttempt(Callable<T> callable, long startTime, int attemptNumber) {
-        Attempt<T> attempt;
-        try {
-            T result = attemptTimeLimiter.call(callable);
-            long delaySinceFirstAttempt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
-            attempt = new ResultAttempt<>(result, attemptNumber, delaySinceFirstAttempt);
-        } catch (Throwable t) {
-            long delaySinceFirstAttempt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
-            attempt = new ExceptionAttempt<>(t, attemptNumber, delaySinceFirstAttempt);
-        }
-
-        for (RetryListener listener : listeners) {
-            listener.onRetry(attempt);
-        }
-
-        return attempt;
     }
 
     /**
@@ -246,6 +164,20 @@ public final class Retryer {
         return false;
     }
 
+    /**
+     * Wraps the given {@link Callable} in a {@link RetryerCallable}, which can
+     * be submitted to an executor. The returned {@link RetryerCallable} uses
+     * this {@link Retryer} instance to call the given {@link Callable}.
+     *
+     * @param callable the callable to wrap
+     * @param <T>      the return type of the Callable
+     * @return a {@link RetryerCallable} that behaves like the given {@link Callable} with retry behavior defined by this {@link Retryer}
+     */
+    @SuppressWarnings("WeakerAccess")
+    public <T> RetryerCallable<T> wrap(Callable<T> callable) {
+        return new RetryerCallable<>(this, callable);
+    }
+
     @Immutable
     static final class ResultAttempt<T> implements Attempt<T> {
         private final T result;
@@ -259,7 +191,7 @@ public final class Retryer {
         }
 
         @Override
-        public T get() throws ExecutionException {
+        public T get() {
             return result;
         }
 
@@ -307,9 +239,8 @@ public final class Retryer {
         }
 
         @Override
-        public T get() throws Exception {
-            Throwables.throwIfUnchecked(throwable);
-            throw (Exception) throwable;
+        public T get() {
+            throw new IllegalStateException("The attempt resulted in an exception, not in a result");
         }
 
         @Override

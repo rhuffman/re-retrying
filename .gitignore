@@ -11,3 +11,4 @@ gradle.properties
 classes/
 gradle/.DS_STORE
 local.properties
+.attach_pid*

@@ -30,10 +30,10 @@ public interface Attempt<T> {
      * Returns the result of the attempt, if any.
      *
      * @return the result of the attempt
-     * @throws Exception Exception thrown by the Callable or Runnable, if the
-     *         exception did not cause a retry.
+     * @throws IllegalStateException If the attempt resulted in an exception rather
+     *         than returning a result.
      */
-    T get() throws Exception;
+    T get();
 
     /**
      * Tells if the call returned a result or not
