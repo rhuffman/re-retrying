@@ -56,7 +56,7 @@ public class StopStrategiesTest {
         assertTrue(StopStrategies.stopAfterDelay(1, TimeUnit.SECONDS).shouldStop(failedAttempt(2, 1001L)));
     }
 
-    private Attempt<Boolean> failedAttempt(long attemptNumber, long delaySinceFirstAttempt) {
+    private Attempt<Boolean> failedAttempt(int attemptNumber, long delaySinceFirstAttempt) {
         return new Retryer.ExceptionAttempt<>(new RuntimeException(), attemptNumber, delaySinceFirstAttempt);
     }
 }

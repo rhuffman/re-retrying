@@ -101,30 +101,33 @@ public final class Retryer {
         for (int attemptNumber = 1; ; attemptNumber++) {
             Attempt<T> attempt;
             try {
-                T result = attemptTimeLimiter.call(callable);
-                long delaySinceFirstAttempt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
-                attempt = new ResultAttempt<>(result, attemptNumber, delaySinceFirstAttempt);
+                attempt = createAttempt(attemptTimeLimiter.call(callable), attemptNumber, startTime);
             } catch (Throwable t) {
-                long delaySinceFirstAttempt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
-                attempt = new ExceptionAttempt<>(t, attemptNumber, delaySinceFirstAttempt);
+                attempt = createAttempt(t, attemptNumber, startTime);
             }
+
             for (RetryListener listener : listeners) {
                 listener.onRetry(attempt);
             }
 
             if (!shouldRetry(attempt)) {
-                if (attempt.hasResult()) {
-                    return attempt.get();
-                }
-                throw new RetryException(attemptNumber, attempt);
+                return getOrThrow(attempt);
             }
+
             if (stopStrategy.shouldStop(attempt)) {
-                throw new RetryException(attemptNumber, attempt);
+                throw new RetryException(attempt);
             } else {
                 long sleepTime = waitStrategy.computeSleepTime(attempt);
                 blockStrategy.block(sleepTime);
             }
         }
+    }
+
+    private <T> T getOrThrow(Attempt<T> attempt) throws RetryException, InterruptedException {
+        if (attempt.hasException()) {
+            throw new RetryException(attempt);
+        }
+        return attempt.get();
     }
 
     /**
@@ -176,13 +179,24 @@ public final class Retryer {
         return new RetryerCallable<>(this, callable);
     }
 
+    private <T> Attempt<T> createAttempt(T result, int attemptNumber, long startTime) {
+        long delaySinceFirstAttempt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
+        return new ResultAttempt<>(result, attemptNumber, delaySinceFirstAttempt);
+    }
+
+    private <T> Attempt<T> createAttempt(Throwable t, int attemptNumber, long startTime) {
+        long delaySinceFirstAttempt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
+        return new ExceptionAttempt<>(t, attemptNumber, delaySinceFirstAttempt);
+    }
+
+
     @Immutable
     static final class ResultAttempt<T> implements Attempt<T> {
         private final T result;
-        private final long attemptNumber;
+        private final int attemptNumber;
         private final long delaySinceFirstAttempt;
 
-        ResultAttempt(T result, long attemptNumber, long delaySinceFirstAttempt) {
+        ResultAttempt(T result, int attemptNumber, long delaySinceFirstAttempt) {
             this.result = result;
             this.attemptNumber = attemptNumber;
             this.delaySinceFirstAttempt = delaySinceFirstAttempt;
@@ -214,7 +228,7 @@ public final class Retryer {
         }
 
         @Override
-        public long getAttemptNumber() {
+        public int getAttemptNumber() {
             return attemptNumber;
         }
 
@@ -227,10 +241,10 @@ public final class Retryer {
     @Immutable
     static final class ExceptionAttempt<T> implements Attempt<T> {
         private final Throwable throwable;
-        private final long attemptNumber;
+        private final int attemptNumber;
         private final long delaySinceFirstAttempt;
 
-        ExceptionAttempt(Throwable cause, long attemptNumber, long delaySinceFirstAttempt) {
+        ExceptionAttempt(Throwable cause, int attemptNumber, long delaySinceFirstAttempt) {
             this.throwable = cause;
             this.attemptNumber = attemptNumber;
             this.delaySinceFirstAttempt = delaySinceFirstAttempt;
@@ -263,7 +277,7 @@ public final class Retryer {
         }
 
         @Override
-        public long getAttemptNumber() {
+        public int getAttemptNumber() {
             return attemptNumber;
         }
 

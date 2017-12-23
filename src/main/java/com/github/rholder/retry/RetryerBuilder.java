@@ -193,7 +193,13 @@ public class RetryerBuilder {
         WaitStrategy theWaitStrategy = waitStrategy == null ? WaitStrategies.noWait() : waitStrategy;
         BlockStrategy theBlockStrategy = blockStrategy == null ? BlockStrategies.threadSleepStrategy() : blockStrategy;
 
-        return new Retryer(theAttemptTimeLimiter, theStopStrategy, theWaitStrategy, theBlockStrategy, rejectionPredicates, listeners);
+        return new Retryer(
+                theAttemptTimeLimiter,
+                theStopStrategy,
+                theWaitStrategy,
+                theBlockStrategy,
+                rejectionPredicates,
+                listeners);
     }
 
     private static final class ExceptionClassPredicate implements Predicate<Attempt<?>> {

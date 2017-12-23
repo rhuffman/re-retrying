@@ -74,7 +74,7 @@ public interface Attempt<T> {
      *
      * @return the attempt number
      */
-    long getAttemptNumber();
+    int getAttemptNumber();
 
     /**
      * The delay since the start of the first attempt, in milliseconds.

@@ -386,7 +386,7 @@ public class RetryerBuilderTest {
 
     @Test
     public void testRetryListener_SuccessfulAttempt() throws Exception {
-        final Map<Long, Attempt> attempts = new HashMap<>();
+        final Map<Integer, Attempt> attempts = new HashMap<>();
 
         RetryListener listener = attempt -> attempts.put(attempt.getAttemptNumber(), attempt);
 
@@ -400,17 +400,17 @@ public class RetryerBuilderTest {
 
         assertEquals(6, attempts.size());
 
-        assertResultAttempt(attempts.get(1L), null);
-        assertResultAttempt(attempts.get(2L), null);
-        assertResultAttempt(attempts.get(3L), null);
-        assertResultAttempt(attempts.get(4L), null);
-        assertResultAttempt(attempts.get(5L), null);
-        assertResultAttempt(attempts.get(6L), true);
+        assertResultAttempt(attempts.get(1), null);
+        assertResultAttempt(attempts.get(2), null);
+        assertResultAttempt(attempts.get(3), null);
+        assertResultAttempt(attempts.get(4), null);
+        assertResultAttempt(attempts.get(5), null);
+        assertResultAttempt(attempts.get(6), true);
     }
 
     @Test
     public void testRetryListener_WithException() throws Exception {
-        final Map<Long, Attempt> attempts = new HashMap<>();
+        final Map<Integer, Attempt> attempts = new HashMap<>();
 
         RetryListener listener = attempt -> attempts.put(attempt.getAttemptNumber(), attempt);
 
@@ -425,12 +425,12 @@ public class RetryerBuilderTest {
 
         assertEquals(6, attempts.size());
 
-        assertExceptionAttempt(attempts.get(1L), IOException.class);
-        assertExceptionAttempt(attempts.get(2L), IOException.class);
-        assertExceptionAttempt(attempts.get(3L), IOException.class);
-        assertExceptionAttempt(attempts.get(4L), IOException.class);
-        assertExceptionAttempt(attempts.get(5L), IOException.class);
-        assertResultAttempt(attempts.get(6L), true);
+        assertExceptionAttempt(attempts.get(1), IOException.class);
+        assertExceptionAttempt(attempts.get(2), IOException.class);
+        assertExceptionAttempt(attempts.get(3), IOException.class);
+        assertExceptionAttempt(attempts.get(4), IOException.class);
+        assertExceptionAttempt(attempts.get(5), IOException.class);
+        assertResultAttempt(attempts.get(6), true);
     }
 
     @Test
