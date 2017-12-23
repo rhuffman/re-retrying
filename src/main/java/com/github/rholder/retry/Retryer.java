@@ -189,17 +189,36 @@ public final class Retryer {
         return new ExceptionAttempt<>(t, attemptNumber, delaySinceFirstAttempt);
     }
 
-
-    @Immutable
-    static final class ResultAttempt<T> implements Attempt<T> {
-        private final T result;
+    private static abstract class BaseAttempt<T> implements Attempt<T> {
         private final int attemptNumber;
         private final long delaySinceFirstAttempt;
 
-        ResultAttempt(T result, int attemptNumber, long delaySinceFirstAttempt) {
-            this.result = result;
+        BaseAttempt(int attemptNumber, long delaySinceFirstAttempt) {
             this.attemptNumber = attemptNumber;
             this.delaySinceFirstAttempt = delaySinceFirstAttempt;
+        }
+
+        @Override
+        public int getAttemptNumber() {
+            return attemptNumber;
+        }
+
+        @Override
+        public long getDelaySinceFirstAttempt() {
+            return delaySinceFirstAttempt;
+        }
+
+
+    }
+
+    @Immutable
+    private static final class ResultAttempt<T> extends BaseAttempt<T> {
+
+        private final T result;
+
+        ResultAttempt(T result, int attemptNumber, long delaySinceFirstAttempt) {
+            super(attemptNumber, delaySinceFirstAttempt);
+            this.result = result;
         }
 
         @Override
@@ -227,27 +246,15 @@ public final class Retryer {
             throw new IllegalStateException("The attempt resulted in a result, not in an exception");
         }
 
-        @Override
-        public int getAttemptNumber() {
-            return attemptNumber;
-        }
-
-        @Override
-        public long getDelaySinceFirstAttempt() {
-            return delaySinceFirstAttempt;
-        }
     }
 
     @Immutable
-    static final class ExceptionAttempt<T> implements Attempt<T> {
+    static final class ExceptionAttempt<T> extends BaseAttempt<T> {
         private final Throwable throwable;
-        private final int attemptNumber;
-        private final long delaySinceFirstAttempt;
 
         ExceptionAttempt(Throwable cause, int attemptNumber, long delaySinceFirstAttempt) {
+            super(attemptNumber, delaySinceFirstAttempt);
             this.throwable = cause;
-            this.attemptNumber = attemptNumber;
-            this.delaySinceFirstAttempt = delaySinceFirstAttempt;
         }
 
         @Override
@@ -274,16 +281,6 @@ public final class Retryer {
         @Override
         public Throwable getException() throws IllegalStateException {
             return throwable;
-        }
-
-        @Override
-        public int getAttemptNumber() {
-            return attemptNumber;
-        }
-
-        @Override
-        public long getDelaySinceFirstAttempt() {
-            return delaySinceFirstAttempt;
         }
     }
 
