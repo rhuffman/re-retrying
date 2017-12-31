@@ -20,12 +20,13 @@ package com.github.rholder.retry;
 import com.google.common.base.Preconditions;
 
 import javax.annotation.Nonnull;
-import javax.annotation.concurrent.Immutable;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
+
+import static com.google.common.base.Preconditions.checkState;
 
 /**
  * A retryer, which executes a call, and retries it until it succeeds, or
@@ -46,39 +47,37 @@ public final class Retryer {
     private final WaitStrategy waitStrategy;
     private final BlockStrategy blockStrategy;
     private final AttemptTimeLimiter attemptTimeLimiter;
-    private final List<Predicate<Attempt<?>>> rejectionPredicates;
+    private final List<Predicate<Attempt<?>>> retryPredictes;
     private final Collection<RetryListener> listeners;
 
     /**
-     * @param attemptTimeLimiter  to prevent from any single attempt from spinning infinitely
-     * @param stopStrategy        the strategy used to decide when the retryer must stop retrying
-     * @param waitStrategy        the strategy used to decide how much time to sleep between attempts
-     * @param blockStrategy       the strategy used to decide how to block between retry attempts;
-     *                            eg, Thread#sleep(), latches, etc.
-     * @param rejectionPredicates the predicates used to decide if the attempt must be rejected
-     *                            or not. If an attempt is rejected, the retryer will retry the call,
-     *                            unless the stop strategy indicates otherwise or the thread is
-     *                            interrupted.
-     * @param listeners           collection of retry listeners
+     * @param attemptTimeLimiter to prevent from any single attempt from spinning infinitely
+     * @param stopStrategy       the strategy used to decide when the retryer must stop retrying
+     * @param waitStrategy       the strategy used to decide how much time to sleep between attempts
+     * @param blockStrategy      the strategy used to decide how to block between retry attempts;
+     *                           eg, Thread#sleep(), latches, etc.
+     * @param retryPredictes     the predicates used to decide if the attempt must be retried (without
+     *                           regard to the StopStrategy).
+     * @param listeners          collection of retry listeners
      */
     Retryer(@Nonnull AttemptTimeLimiter attemptTimeLimiter,
             @Nonnull StopStrategy stopStrategy,
             @Nonnull WaitStrategy waitStrategy,
             @Nonnull BlockStrategy blockStrategy,
-            @Nonnull List<Predicate<Attempt<?>>> rejectionPredicates,
+            @Nonnull List<Predicate<Attempt<?>>> retryPredictes,
             @Nonnull Collection<RetryListener> listeners) {
         Preconditions.checkNotNull(attemptTimeLimiter, "timeLimiter may not be null");
         Preconditions.checkNotNull(stopStrategy, "stopStrategy may not be null");
         Preconditions.checkNotNull(waitStrategy, "waitStrategy may not be null");
         Preconditions.checkNotNull(blockStrategy, "blockStrategy may not be null");
-        Preconditions.checkNotNull(rejectionPredicates, "rejectionPredicates may not be null");
+        Preconditions.checkNotNull(retryPredictes, "rejectionPredicates may not be null");
         Preconditions.checkNotNull(listeners, "listeners may not null");
 
         this.attemptTimeLimiter = attemptTimeLimiter;
         this.stopStrategy = stopStrategy;
         this.waitStrategy = waitStrategy;
         this.blockStrategy = blockStrategy;
-        this.rejectionPredicates = rejectionPredicates;
+        this.retryPredictes = retryPredictes;
         this.listeners = listeners;
     }
 
@@ -103,30 +102,33 @@ public final class Retryer {
         for (int attemptNumber = 1; ; attemptNumber++) {
             Attempt<T> attempt;
             try {
-                T result = attemptTimeLimiter.call(callable);
-                long delaySinceFirstAttempt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
-                attempt = new ResultAttempt<>(result, attemptNumber, delaySinceFirstAttempt);
+                attempt = createAttempt(attemptTimeLimiter.call(callable), attemptNumber, startTime);
             } catch (Throwable t) {
-                long delaySinceFirstAttempt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
-                attempt = new ExceptionAttempt<>(t, attemptNumber, delaySinceFirstAttempt);
+                attempt = createAttempt(t, attemptNumber, startTime);
             }
+
             for (RetryListener listener : listeners) {
                 listener.onRetry(attempt);
             }
 
-            if (!shouldReject(attempt)) {
-                if (attempt.hasResult()) {
-                    return attempt.get();
-                }
-                throw new RetryException(attemptNumber, attempt);
+            if (!shouldRetry(attempt)) {
+                return getOrThrow(attempt);
             }
+
             if (stopStrategy.shouldStop(attempt)) {
-                throw new RetryException(attemptNumber, attempt);
+                throw new RetryException(attempt);
             } else {
                 long sleepTime = waitStrategy.computeSleepTime(attempt);
                 blockStrategy.block(sleepTime);
             }
         }
+    }
+
+    private <T> T getOrThrow(Attempt<T> attempt) throws RetryException, InterruptedException {
+        if (attempt.hasException()) {
+            throw new RetryException(attempt);
+        }
+        return attempt.get();
     }
 
     /**
@@ -155,8 +157,8 @@ public final class Retryer {
      *
      * @param attempt The attempt made by invoking the call
      */
-    private boolean shouldReject(Attempt<?> attempt) {
-        for (Predicate<Attempt<?>> predicate : rejectionPredicates) {
+    private boolean shouldRetry(Attempt<?> attempt) {
+        for (Predicate<Attempt<?>> predicate : retryPredictes) {
             if (predicate.test(attempt)) {
                 return true;
             }
@@ -178,101 +180,14 @@ public final class Retryer {
         return new RetryerCallable<>(this, callable);
     }
 
-    @Immutable
-    static final class ResultAttempt<T> implements Attempt<T> {
-        private final T result;
-        private final long attemptNumber;
-        private final long delaySinceFirstAttempt;
-
-        ResultAttempt(T result, long attemptNumber, long delaySinceFirstAttempt) {
-            this.result = result;
-            this.attemptNumber = attemptNumber;
-            this.delaySinceFirstAttempt = delaySinceFirstAttempt;
-        }
-
-        @Override
-        public T get() {
-            return result;
-        }
-
-        @Override
-        public boolean hasResult() {
-            return true;
-        }
-
-        @Override
-        public boolean hasException() {
-            return false;
-        }
-
-        @Override
-        public T getResult() throws IllegalStateException {
-            return result;
-        }
-
-        @Override
-        public Throwable getException() throws IllegalStateException {
-            throw new IllegalStateException("The attempt resulted in a result, not in an exception");
-        }
-
-        @Override
-        public long getAttemptNumber() {
-            return attemptNumber;
-        }
-
-        @Override
-        public long getDelaySinceFirstAttempt() {
-            return delaySinceFirstAttempt;
-        }
+    private <T> Attempt<T> createAttempt(T result, int attemptNumber, long startTime) {
+        long delaySinceFirstAttempt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
+        return new Attempt<>(result, attemptNumber, delaySinceFirstAttempt);
     }
 
-    @Immutable
-    static final class ExceptionAttempt<T> implements Attempt<T> {
-        private final Throwable throwable;
-        private final long attemptNumber;
-        private final long delaySinceFirstAttempt;
-
-        ExceptionAttempt(Throwable cause, long attemptNumber, long delaySinceFirstAttempt) {
-            this.throwable = cause;
-            this.attemptNumber = attemptNumber;
-            this.delaySinceFirstAttempt = delaySinceFirstAttempt;
-        }
-
-        @Override
-        public T get() {
-            throw new IllegalStateException("The attempt resulted in an exception, not in a result");
-        }
-
-        @Override
-        public boolean hasResult() {
-            return false;
-        }
-
-        @Override
-        public boolean hasException() {
-            return true;
-        }
-
-        @Override
-        public T getResult() throws IllegalStateException {
-            throw new IllegalStateException("The attempt resulted in an exception, not in a result");
-        }
-
-
-        @Override
-        public Throwable getException() throws IllegalStateException {
-            return throwable;
-        }
-
-        @Override
-        public long getAttemptNumber() {
-            return attemptNumber;
-        }
-
-        @Override
-        public long getDelaySinceFirstAttempt() {
-            return delaySinceFirstAttempt;
-        }
+    private <T> Attempt<T> createAttempt(Throwable t, int attemptNumber, long startTime) {
+        long delaySinceFirstAttempt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
+        return new Attempt<>(t, attemptNumber, delaySinceFirstAttempt);
     }
 
     /**
