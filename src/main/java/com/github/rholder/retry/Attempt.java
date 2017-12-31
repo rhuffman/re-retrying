@@ -17,6 +17,8 @@
 
 package com.github.rholder.retry;
 
+import static com.google.common.base.Preconditions.checkState;
+
 /**
  * An attempt of a call, which resulted either in a result returned by the call,
  * or in a Throwable thrown by the call.
@@ -24,7 +26,30 @@ package com.github.rholder.retry;
  * @param <T> The type returned by the wrapped callable.
  * @author JB
  */
-public interface Attempt<T> {
+@SuppressWarnings("WeakerAccess")
+public class Attempt<T> {
+
+    private final T result;
+
+    private final Throwable throwable;
+
+    private final int attemptNumber;
+
+    private final long delaySinceFirstAttempt;
+
+    Attempt(T result, int attemptNumber, long delaySinceFirstAttempt) {
+        this.result = result;
+        this.throwable = null;
+        this.attemptNumber = attemptNumber;
+        this.delaySinceFirstAttempt = delaySinceFirstAttempt;
+    }
+
+    Attempt(Throwable throwable, int attemptNumber, long delaySinceFirstAttempt) {
+        this.result = null;
+        this.throwable = throwable;
+        this.attemptNumber = attemptNumber;
+        this.delaySinceFirstAttempt = delaySinceFirstAttempt;
+    }
 
     /**
      * Returns the result of the attempt, if any.
@@ -33,7 +58,10 @@ public interface Attempt<T> {
      * @throws IllegalStateException If the attempt resulted in an exception rather
      *         than returning a result.
      */
-    T get();
+    public T get() {
+        checkState(hasResult(), "The attempt resulted in an exception, not in a result");
+        return result;
+    }
 
     /**
      * Tells if the call returned a result or not
@@ -41,7 +69,11 @@ public interface Attempt<T> {
      * @return <code>true</code> if the call returned a result, <code>false</code>
      *         if it threw an exception
      */
-    boolean hasResult();
+    public boolean hasResult() {
+        // Check the exception field, because the Callable may have succeeded and returned null.
+        // In that case both exception and result will be null.
+        return throwable == null;
+    }
 
     /**
      * Tells if the call threw an exception or not
@@ -49,7 +81,9 @@ public interface Attempt<T> {
      * @return <code>true</code> if the call threw an exception, <code>false</code>
      *         if it returned a result
      */
-    boolean hasException();
+    public boolean hasException() {
+        return throwable != null;
+    }
 
     /**
      * Gets the result of the call
@@ -58,7 +92,9 @@ public interface Attempt<T> {
      * @throws IllegalStateException if the call didn't return a result, but threw an exception,
      *                               as indicated by {@link #hasResult()}
      */
-    T getResult() throws IllegalStateException;
+    public T getResult() throws IllegalStateException {
+        return get();
+    }
 
     /**
      * Gets the exception thrown by the call
@@ -67,19 +103,26 @@ public interface Attempt<T> {
      * @throws IllegalStateException if the call didn't throw an exception,
      *                               as indicated by {@link #hasException()}
      */
-    Throwable getException() throws IllegalStateException;
+    public Throwable getException() throws IllegalStateException {
+        checkState(hasException(), "The attempt resulted in a result, not in an exception");
+        return throwable;
+    }
 
     /**
      * The number, starting from 1, of this attempt.
      *
      * @return the attempt number
      */
-    int getAttemptNumber();
+    public int getAttemptNumber() {
+        return attemptNumber;
+    }
 
     /**
      * The delay since the start of the first attempt, in milliseconds.
      *
      * @return the delay since the start of the first attempt, in milliseconds
      */
-    long getDelaySinceFirstAttempt();
+    public long getDelaySinceFirstAttempt() {
+        return delaySinceFirstAttempt;
+    }
 }

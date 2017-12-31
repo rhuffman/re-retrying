@@ -20,12 +20,13 @@ package com.github.rholder.retry;
 import com.google.common.base.Preconditions;
 
 import javax.annotation.Nonnull;
-import javax.annotation.concurrent.Immutable;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
+
+import static com.google.common.base.Preconditions.checkState;
 
 /**
  * A retryer, which executes a call, and retries it until it succeeds, or
@@ -181,107 +182,12 @@ public final class Retryer {
 
     private <T> Attempt<T> createAttempt(T result, int attemptNumber, long startTime) {
         long delaySinceFirstAttempt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
-        return new ResultAttempt<>(result, attemptNumber, delaySinceFirstAttempt);
+        return new Attempt<>(result, attemptNumber, delaySinceFirstAttempt);
     }
 
     private <T> Attempt<T> createAttempt(Throwable t, int attemptNumber, long startTime) {
         long delaySinceFirstAttempt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
-        return new ExceptionAttempt<>(t, attemptNumber, delaySinceFirstAttempt);
-    }
-
-    private static abstract class BaseAttempt<T> implements Attempt<T> {
-        private final int attemptNumber;
-        private final long delaySinceFirstAttempt;
-
-        BaseAttempt(int attemptNumber, long delaySinceFirstAttempt) {
-            this.attemptNumber = attemptNumber;
-            this.delaySinceFirstAttempt = delaySinceFirstAttempt;
-        }
-
-        @Override
-        public int getAttemptNumber() {
-            return attemptNumber;
-        }
-
-        @Override
-        public long getDelaySinceFirstAttempt() {
-            return delaySinceFirstAttempt;
-        }
-
-
-    }
-
-    @Immutable
-    private static final class ResultAttempt<T> extends BaseAttempt<T> {
-
-        private final T result;
-
-        ResultAttempt(T result, int attemptNumber, long delaySinceFirstAttempt) {
-            super(attemptNumber, delaySinceFirstAttempt);
-            this.result = result;
-        }
-
-        @Override
-        public T get() {
-            return result;
-        }
-
-        @Override
-        public boolean hasResult() {
-            return true;
-        }
-
-        @Override
-        public boolean hasException() {
-            return false;
-        }
-
-        @Override
-        public T getResult() throws IllegalStateException {
-            return result;
-        }
-
-        @Override
-        public Throwable getException() throws IllegalStateException {
-            throw new IllegalStateException("The attempt resulted in a result, not in an exception");
-        }
-
-    }
-
-    @Immutable
-    static final class ExceptionAttempt<T> extends BaseAttempt<T> {
-        private final Throwable throwable;
-
-        ExceptionAttempt(Throwable cause, int attemptNumber, long delaySinceFirstAttempt) {
-            super(attemptNumber, delaySinceFirstAttempt);
-            this.throwable = cause;
-        }
-
-        @Override
-        public T get() {
-            throw new IllegalStateException("The attempt resulted in an exception, not in a result");
-        }
-
-        @Override
-        public boolean hasResult() {
-            return false;
-        }
-
-        @Override
-        public boolean hasException() {
-            return true;
-        }
-
-        @Override
-        public T getResult() throws IllegalStateException {
-            throw new IllegalStateException("The attempt resulted in an exception, not in a result");
-        }
-
-
-        @Override
-        public Throwable getException() throws IllegalStateException {
-            return throwable;
-        }
+        return new Attempt<>(t, attemptNumber, delaySinceFirstAttempt);
     }
 
     /**

@@ -167,13 +167,13 @@ public class WaitStrategiesTest {
         assertEquals(0L, noMatchRetryAfterWait.computeSleepTime(failedAttempt(42, 7227)));
 
         WaitStrategy retryAfterWait = WaitStrategies.exceptionWait(RetryAfterException.class, customSleepFunction());
-        Retryer.ExceptionAttempt<Boolean> failedAttempt = new Retryer.ExceptionAttempt<>(
+        Attempt<Boolean> failedAttempt = new Attempt<>(
                 new RetryAfterException(), 42, 7227L);
         assertEquals(29L, retryAfterWait.computeSleepTime(failedAttempt));
     }
 
     private Attempt<Boolean> failedAttempt(int attemptNumber, long delaySinceFirstAttempt) {
-        return new Retryer.ExceptionAttempt<>(new RuntimeException(), attemptNumber, delaySinceFirstAttempt);
+        return new Attempt<>(new RuntimeException(), attemptNumber, delaySinceFirstAttempt);
     }
 
     private Function<RuntimeException, Long> zeroSleepFunction() {
