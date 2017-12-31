@@ -108,6 +108,10 @@ public class RetryerBuilderTest {
     }
 
     @Test
+    public void testRetryIfNotOfExceptionType() {
+    }
+
+    @Test
     public void testWithBlockStrategy() throws Exception {
         Callable<Boolean> callable = notNullAfter5Attempts();
         final AtomicInteger counter = new AtomicInteger();

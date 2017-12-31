@@ -23,10 +23,7 @@ import javax.annotation.Nonnull;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
-
-import static com.google.common.base.Preconditions.checkState;
 
 /**
  * A retryer, which executes a call, and retries it until it succeeds, or
@@ -98,13 +95,14 @@ public final class Retryer {
      *                              {@link Thread#sleep} is invoked between attempts
      */
     public <T> T call(Callable<T> callable) throws RetryException, InterruptedException {
-        long startTime = System.nanoTime();
+        long startTimeMillis = System.currentTimeMillis();
         for (int attemptNumber = 1; ; attemptNumber++) {
             Attempt<T> attempt;
             try {
-                attempt = createAttempt(attemptTimeLimiter.call(callable), attemptNumber, startTime);
+                T result = attemptTimeLimiter.call(callable);
+                attempt = new Attempt<>(result, attemptNumber, System.currentTimeMillis() - startTimeMillis);
             } catch (Throwable t) {
-                attempt = createAttempt(t, attemptNumber, startTime);
+                attempt = new Attempt<>(t, attemptNumber, System.currentTimeMillis() - startTimeMillis);
             }
 
             for (RetryListener listener : listeners) {
@@ -178,16 +176,6 @@ public final class Retryer {
     @SuppressWarnings("WeakerAccess")
     public <T> RetryerCallable<T> wrap(Callable<T> callable) {
         return new RetryerCallable<>(this, callable);
-    }
-
-    private <T> Attempt<T> createAttempt(T result, int attemptNumber, long startTime) {
-        long delaySinceFirstAttempt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
-        return new Attempt<>(result, attemptNumber, delaySinceFirstAttempt);
-    }
-
-    private <T> Attempt<T> createAttempt(Throwable t, int attemptNumber, long startTime) {
-        long delaySinceFirstAttempt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
-        return new Attempt<>(t, attemptNumber, delaySinceFirstAttempt);
     }
 
     /**
