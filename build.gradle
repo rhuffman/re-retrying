@@ -84,6 +84,7 @@ ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 // Plugins
 
 apply plugin: 'java'
+apply plugin: 'org.junit.platform.gradle.plugin'
 sourceCompatibility = project_jdk
 targetCompatibility = project_jdk
 
@@ -98,13 +99,27 @@ repositories {
     mavenCentral()
 }
 
+ext.junit4Version        = '4.12'
+ext.junitVintageVersion  = '4.12.2'
+ext.junitPlatformVersion = '1.0.2'
+ext.junitJupiterVersion  = '5.0.2'
+ext.log4jVersion         = '2.9.0'
+
 dependencies {
     compile 'com.google.guava:guava:23.0'
     compileOnly 'com.google.code.findbugs:jsr305:2.0.2'
 
-    // junit testing
-    testCompile 'junit:junit:4.12'
+    testCompile "org.junit.jupiter:junit-jupiter-api:${junitJupiterVersion}"
+    testCompile "org.junit.jupiter:junit-jupiter-params:${junitJupiterVersion}"
+    testCompile "junit:junit:${junit4Version}"
     testCompile 'org.mockito:mockito-all:1.9.5'
+
+    // To avoid compiler warning about use of experimental features in JUnit 5
+    testCompileOnly 'org.apiguardian:apiguardian-api:1.0.0'
+
+    testRuntime "org.junit.jupiter:junit-jupiter-engine:${junitJupiterVersion}"
+    testRuntime "org.junit.vintage:junit-vintage-engine:${junitVintageVersion}"
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -194,5 +209,14 @@ idea {
     project {
         languageLevel = project_jdk
         vcs = 'Git'
+    }
+}
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'org.junit.platform:junit-platform-gradle-plugin:1.0.2'
     }
 }

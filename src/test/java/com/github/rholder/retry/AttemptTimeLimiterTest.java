@@ -21,9 +21,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 /**
  * @author Jason Dunkelberger (dirkraft)
@@ -35,19 +33,17 @@ public class AttemptTimeLimiterTest {
             .build();
 
     @Test
-    public void testAttemptTimeLimit() throws ExecutionException, RetryException {
+    public void testAttemptTimeLimit() throws Exception {
         try {
             r.call(new SleepyOut(0L));
-        } catch (ExecutionException e) {
+        } catch (Exception e) {
             Assert.fail("Should not timeout");
         }
 
         try {
             r.call(new SleepyOut(10 * 1000L));
             Assert.fail("Expected timeout exception");
-        } catch (ExecutionException e) {
-            // expected
-            Assert.assertEquals(TimeoutException.class, e.getCause().getClass());
+        } catch (RetryException ignored) {
         }
     }
 
@@ -62,7 +58,6 @@ public class AttemptTimeLimiterTest {
         @Override
         public Void call() throws Exception {
             Thread.sleep(sleepMs);
-            System.out.println("I'm awake now");
             return null;
         }
     }

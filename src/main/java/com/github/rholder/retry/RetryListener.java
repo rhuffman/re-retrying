@@ -28,7 +28,7 @@ public interface RetryListener {
 
     /**
      * This method with fire no matter what the result is and before the
-     * rejection predicate and stop strategies are applied.
+     * retry predicate and stop strategies are applied.
      *
      * @param attempt the current {@link Attempt}
      */

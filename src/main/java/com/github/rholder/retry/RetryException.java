@@ -20,8 +20,6 @@ package com.github.rholder.retry;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 /**
  * An exception indicating that none of the attempts of the {@link Retryer}
  * succeeded. If the last {@link Attempt} resulted in an Exception, it is set as
@@ -33,32 +31,30 @@ import static com.google.common.base.Preconditions.checkNotNull;
 @Immutable
 public final class RetryException extends Exception {
 
-    private final int numberOfFailedAttempts;
     private final Attempt<?> lastFailedAttempt;
 
     /**
      * If the last {@link Attempt} had an Exception, ensure it is available in
      * the stack trace.
      *
-     * @param numberOfFailedAttempts times we've tried and failed
-     * @param lastFailedAttempt      what happened the last time we failed
+     * @param attempt what happened the last time we failed
      */
-    RetryException(int numberOfFailedAttempts, @Nonnull Attempt<?> lastFailedAttempt) {
-        this("Retrying failed to complete successfully after " + numberOfFailedAttempts + " attempts.", numberOfFailedAttempts, lastFailedAttempt);
+    RetryException(@Nonnull Attempt<?> attempt) {
+        this("Retrying failed to complete successfully after " +
+                        attempt.getAttemptNumber() + " attempts.",
+                attempt);
     }
 
     /**
      * If the last {@link Attempt} had an Exception, ensure it is available in
      * the stack trace.
      *
-     * @param message                Exception description to be added to the stack trace
-     * @param numberOfFailedAttempts times we've tried and failed
-     * @param lastFailedAttempt      what happened the last time we failed
+     * @param message Exception description to be added to the stack trace
+     * @param attempt what happened the last time we failed
      */
-    private RetryException(String message, int numberOfFailedAttempts, Attempt<?> lastFailedAttempt) {
-        super(message, checkNotNull(lastFailedAttempt, "Last attempt was null").hasException() ? lastFailedAttempt.getExceptionCause() : null);
-        this.numberOfFailedAttempts = numberOfFailedAttempts;
-        this.lastFailedAttempt = lastFailedAttempt;
+    private RetryException(String message, Attempt<?> attempt) {
+        super(message, attempt.hasException() ? attempt.getException() : null);
+        this.lastFailedAttempt = attempt;
     }
 
     /**
@@ -67,7 +63,7 @@ public final class RetryException extends Exception {
      * @return the number of failed attempts
      */
     public int getNumberOfFailedAttempts() {
-        return numberOfFailedAttempts;
+        return lastFailedAttempt.getAttemptNumber();
     }
 
     /**
