@@ -67,7 +67,7 @@ public final class Retryer {
         Preconditions.checkNotNull(stopStrategy, "stopStrategy may not be null");
         Preconditions.checkNotNull(waitStrategy, "waitStrategy may not be null");
         Preconditions.checkNotNull(blockStrategy, "blockStrategy may not be null");
-        Preconditions.checkNotNull(retryPredictes, "rejectionPredicates may not be null");
+        Preconditions.checkNotNull(retryPredictes, "retryPredicates may not be null");
         Preconditions.checkNotNull(listeners, "listeners may not null");
 
         this.attemptTimeLimiter = attemptTimeLimiter;
@@ -79,7 +79,7 @@ public final class Retryer {
     }
 
     /**
-     * Executes the given callable, retrying if necessary. If the rejection predicate
+     * Executes the given callable, retrying if necessary. If the retry predicate
      * accepts the attempt, the stop strategy is used to decide if a new attempt
      * must be made. Then the wait strategy is used to decide how much time to sleep
      * and a new attempt is made.
@@ -130,7 +130,7 @@ public final class Retryer {
     }
 
     /**
-     * Executes the given runnable, retrying if necessary. If the rejection predicate
+     * Executes the given runnable, retrying if necessary. If the retry predicate
      * accepts the attempt, the stop strategy is used to decide if a new attempt
      * must be made. Then the wait strategy is used to decide how much time to sleep
      * and a new attempt is made.
@@ -150,7 +150,7 @@ public final class Retryer {
     }
 
     /**
-     * Applies the rejection predicates to the attempt, in order, until either one
+     * Applies the retry predicates to the attempt, in order, until either one
      * predicate returns true or all predicates return false.
      *
      * @param attempt The attempt made by invoking the call

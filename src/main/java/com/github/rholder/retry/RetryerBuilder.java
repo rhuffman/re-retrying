@@ -37,7 +37,7 @@ public class RetryerBuilder {
     private StopStrategy stopStrategy;
     private WaitStrategy waitStrategy;
     private BlockStrategy blockStrategy;
-    private List<Predicate<Attempt<?>>> rejectionPredicates = Lists.newArrayList();
+    private List<Predicate<Attempt<?>>> retryPredicates = Lists.newArrayList();
     private List<RetryListener> listeners = new ArrayList<>();
 
     private RetryerBuilder() {
@@ -128,7 +128,7 @@ public class RetryerBuilder {
      * @return <code>this</code>
      */
     public RetryerBuilder retryIfException() {
-        rejectionPredicates.add(new ExceptionClassPredicate(Exception.class));
+        retryPredicates.add(new ExceptionClassPredicate(Exception.class));
         return this;
     }
 
@@ -139,7 +139,7 @@ public class RetryerBuilder {
      * @return <code>this</code>
      */
     public RetryerBuilder retryIfRuntimeException() {
-        rejectionPredicates.add(new ExceptionClassPredicate(RuntimeException.class));
+        retryPredicates.add(new ExceptionClassPredicate(RuntimeException.class));
         return this;
     }
 
@@ -152,7 +152,7 @@ public class RetryerBuilder {
      */
     public RetryerBuilder retryIfExceptionOfType(@Nonnull Class<? extends Throwable> exceptionClass) {
         Preconditions.checkNotNull(exceptionClass, "exceptionClass may not be null");
-        rejectionPredicates.add(new ExceptionClassPredicate(exceptionClass));
+        retryPredicates.add(new ExceptionClassPredicate(exceptionClass));
         return this;
     }
 
@@ -165,7 +165,7 @@ public class RetryerBuilder {
      */
     public RetryerBuilder retryIfException(@Nonnull Predicate<Throwable> exceptionPredicate) {
         Preconditions.checkNotNull(exceptionPredicate, "exceptionPredicate may not be null");
-        rejectionPredicates.add(new ExceptionPredicate(exceptionPredicate));
+        retryPredicates.add(new ExceptionPredicate(exceptionPredicate));
         return this;
     }
 
@@ -178,7 +178,7 @@ public class RetryerBuilder {
      */
     public <T> RetryerBuilder retryIfResult(@Nonnull Predicate<T> resultPredicate) {
         Preconditions.checkNotNull(resultPredicate, "resultPredicate may not be null");
-        rejectionPredicates.add(new ResultPredicate<>(resultPredicate));
+        retryPredicates.add(new ResultPredicate<>(resultPredicate));
         return this;
     }
 
@@ -198,7 +198,7 @@ public class RetryerBuilder {
                 theStopStrategy,
                 theWaitStrategy,
                 theBlockStrategy,
-                rejectionPredicates,
+                retryPredicates,
                 listeners);
     }
 
