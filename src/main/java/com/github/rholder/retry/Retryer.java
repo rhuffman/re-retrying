@@ -87,10 +87,7 @@ public final class Retryer {
      * @param callable the callable task to be executed
      * @param <T>      the return type of the Callable
      * @return the computed result of the given callable
-     * @throws RetryException       if all the attempts failed before the stop strategy decided
-     *                              to abort, or the thread was interrupted. Note that if the thread
-     *                              is interrupted, this exception is thrown and the thread's
-     *                              interrupt status is set.
+     * @throws RetryException       if all the attempts failed before the stop strategy decided to abort
      * @throws InterruptedException If this thread is interrupted. This can happen because
      *                              {@link Thread#sleep} is invoked between attempts
      */
@@ -122,13 +119,6 @@ public final class Retryer {
         }
     }
 
-    private <T> T getOrThrow(Attempt<T> attempt) throws RetryException, InterruptedException {
-        if (attempt.hasException()) {
-            throw new RetryException(attempt);
-        }
-        return attempt.get();
-    }
-
     /**
      * Executes the given runnable, retrying if necessary. If the retry predicate
      * accepts the attempt, the stop strategy is used to decide if a new attempt
@@ -136,10 +126,10 @@ public final class Retryer {
      * and a new attempt is made.
      *
      * @param runnable the runnable task to be executed
-     * @throws RetryException if all the attempts failed before the stop strategy decided
-     *                        to abort, or the thread was interrupted. Note that if the thread
-     *                        is interrupted, this exception is thrown and the thread's
-     *                        interrupt status is set.
+     * @throws RetryException       if all the attempts failed before the stop strategy decided
+     *                              to abort
+     * @throws InterruptedException If this thread is interrupted. This can happen because
+     *                              {@link Thread#sleep} is invoked between attempts
      */
     @SuppressWarnings("WeakerAccess")
     public void run(Runnable runnable) throws RetryException, InterruptedException {
@@ -147,6 +137,22 @@ public final class Retryer {
             runnable.run();
             return null;
         });
+    }
+
+    /**
+     * Throw the Attempt's exception, if it has one, wrapped in a RetryException. Otherwise,
+     * return the attempt's result.
+     *
+     * @param attempt An attempt that was made by invoking the call
+     * @param <T>     The type of the attempt
+     * @return The result of the attempt
+     * @throws RetryException If the attempt has an exception
+     */
+    private <T> T getOrThrow(Attempt<T> attempt) throws RetryException {
+        if (attempt.hasException()) {
+            throw new RetryException(attempt);
+        }
+        return attempt.get();
     }
 
     /**
