@@ -44,7 +44,7 @@ public final class Retryer {
     private final WaitStrategy waitStrategy;
     private final BlockStrategy blockStrategy;
     private final AttemptTimeLimiter attemptTimeLimiter;
-    private final List<Predicate<Attempt<?>>> retryPredictes;
+    private final List<Predicate<Attempt<?>>> retryPredicates;
     private final Collection<RetryListener> listeners;
 
     /**
@@ -53,7 +53,7 @@ public final class Retryer {
      * @param waitStrategy       the strategy used to decide how much time to sleep between attempts
      * @param blockStrategy      the strategy used to decide how to block between retry attempts;
      *                           eg, Thread#sleep(), latches, etc.
-     * @param retryPredictes     the predicates used to decide if the attempt must be retried (without
+     * @param retryPredicates     the predicates used to decide if the attempt must be retried (without
      *                           regard to the StopStrategy).
      * @param listeners          collection of retry listeners
      */
@@ -61,20 +61,20 @@ public final class Retryer {
             @Nonnull StopStrategy stopStrategy,
             @Nonnull WaitStrategy waitStrategy,
             @Nonnull BlockStrategy blockStrategy,
-            @Nonnull List<Predicate<Attempt<?>>> retryPredictes,
+            @Nonnull List<Predicate<Attempt<?>>> retryPredicates,
             @Nonnull Collection<RetryListener> listeners) {
         Preconditions.checkNotNull(attemptTimeLimiter, "timeLimiter may not be null");
         Preconditions.checkNotNull(stopStrategy, "stopStrategy may not be null");
         Preconditions.checkNotNull(waitStrategy, "waitStrategy may not be null");
         Preconditions.checkNotNull(blockStrategy, "blockStrategy may not be null");
-        Preconditions.checkNotNull(retryPredictes, "retryPredicates may not be null");
+        Preconditions.checkNotNull(retryPredicates, "retryPredicates may not be null");
         Preconditions.checkNotNull(listeners, "listeners may not null");
 
         this.attemptTimeLimiter = attemptTimeLimiter;
         this.stopStrategy = stopStrategy;
         this.waitStrategy = waitStrategy;
         this.blockStrategy = blockStrategy;
-        this.retryPredictes = retryPredictes;
+        this.retryPredicates = retryPredicates;
         this.listeners = listeners;
     }
 
@@ -162,7 +162,7 @@ public final class Retryer {
      * @param attempt The attempt made by invoking the call
      */
     private boolean shouldRetry(Attempt<?> attempt) {
-        for (Predicate<Attempt<?>> predicate : retryPredictes) {
+        for (Predicate<Attempt<?>> predicate : retryPredicates) {
             if (predicate.test(attempt)) {
                 return true;
             }
