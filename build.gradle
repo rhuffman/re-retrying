@@ -15,82 +15,36 @@
  * limitations under the License.
  */
 
+apply plugin: 'java'
+apply plugin: 'org.junit.platform.gradle.plugin'
+apply plugin: 'idea'
+apply plugin: 'maven'
+apply plugin: 'signing'
+
 import org.gradle.api.artifacts.maven.MavenDeployment
 
+group = 'tech.huffman.re-retrying'
+version = '4.0.0-SNAPSHOT'
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+
+ext.isReleaseVersion = !version.endsWith('SNAPSHOT')
+
+def defaultManifest() {
+    return manifest {
+        def git_cmd = "git rev-parse HEAD"
+        def git_proc = git_cmd.execute()
+        attributes 'SCM-Revision': git_proc.text.trim()
+        attributes 'Timestamp': new Date().toString()
+        attributes 'Build-Host': InetAddress.localHost.hostName
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Settings
 ext {
-    project_group = 'tech.huffman.re-retrying'
-    project_version = '4.0.0-SNAPSHOT'
-    project_jdk = '1.8'
-    project_pom = {
-        name 're-retrying'
-        packaging 'jar'
-        description 'A library to create configurable retrying strategies for an arbitrary function call, such as a method that connects to a remote service with flaky uptime.'
-        url 'https://github.com/rhuffman/re-retrying'
-
-        scm {
-            url 'scm:git@github.com:rhuffman/re-retrying.git'
-            connection 'scm:git@github.com:rhuffman/re-retrying.git'
-            developerConnection 'scm:git@github.com:rhuffman/re-retrying.git'
-        }
-
-        licenses {
-            license {
-                name 'The Apache Software License, Version 2.0'
-                url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                distribution 'repo'
-            }
-        }
-
-        developers {
-            developer {
-                id 'rhuffman'
-                name 'Robert Huffman'
-            }
-        }
-    }
-
     /** Function always returns a new manifest that can be customized */
-    defaultManifest = {
-        return manifest {
-            def git_cmd = "git rev-parse HEAD"
-            def git_proc = git_cmd.execute()
-            attributes 'SCM-Revision': git_proc.text.trim()
-            attributes 'Timestamp': String.valueOf(System.currentTimeMillis())
-            attributes 'Build-Host': InetAddress.localHost.hostName
-        }
-    }
-
-    defaultBlank = { closure ->
-        try {
-            closure()
-        } catch (MissingPropertyException e) {
-            ''
-        }
-    }
-
 }
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Identifiers
-
-group = project_group
-version = project_version
-ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Plugins
-
-apply plugin: 'java'
-apply plugin: 'org.junit.platform.gradle.plugin'
-sourceCompatibility = project_jdk
-targetCompatibility = project_jdk
-
-apply plugin: 'idea'
-apply plugin: 'maven'
-apply plugin: 'signing'
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Dependencies
@@ -182,7 +136,33 @@ uploadArchives {
                 authentication(userName: sonatypeUser, password: sonatypePass)
             }
 
-            pom.project project_pom
+            pom.project {
+                name 're-retrying'
+                packaging 'jar'
+                description 'A library to create configurable retrying strategies for an arbitrary function call, such as a method that connects to a remote service with flaky uptime.'
+                url 'https://github.com/rhuffman/re-retrying'
+
+                scm {
+                    url 'scm:git@github.com:rhuffman/re-retrying.git'
+                    connection 'scm:git@github.com:rhuffman/re-retrying.git'
+                    developerConnection 'scm:git@github.com:rhuffman/re-retrying.git'
+                }
+
+                licenses {
+                    license {
+                        name 'The Apache Software License, Version 2.0'
+                        url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                        distribution 'repo'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id 'rhuffman'
+                        name 'Robert Huffman'
+                    }
+                }
+            }
         }
     }
 }
@@ -207,7 +187,6 @@ idea {
         downloadSources = true
     }
     project {
-        languageLevel = project_jdk
         vcs = 'Git'
     }
 }
