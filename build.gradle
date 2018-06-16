@@ -29,25 +29,7 @@ sourceCompatibility = '1.8'
 targetCompatibility = '1.8'
 
 ext.isReleaseVersion = !version.endsWith('SNAPSHOT')
-
-def defaultManifest() {
-    return manifest {
-        def git_cmd = "git rev-parse HEAD"
-        def git_proc = git_cmd.execute()
-        attributes 'SCM-Revision': git_proc.text.trim()
-        attributes 'Timestamp': new Date().toString()
-        attributes 'Build-Host': InetAddress.localHost.hostName
-    }
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Settings
-ext {
-    /** Function always returns a new manifest that can be customized */
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Dependencies
+ext.scmRevision = "git rev-parse HEAD".execute().text.trim()
 
 repositories {
     mavenCentral()
@@ -57,7 +39,6 @@ ext.junit4Version        = '4.12'
 ext.junitVintageVersion  = '4.12.2'
 ext.junitPlatformVersion = '1.0.2'
 ext.junitJupiterVersion  = '5.0.2'
-ext.log4jVersion         = '2.9.0'
 
 dependencies {
     compile 'com.google.guava:guava:23.0'
@@ -76,23 +57,17 @@ dependencies {
 
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Artifacts
-
-jar {
-    doFirst {
-        // Timestamp changes on every build. By evaluating it later, won't needlessly fail up-to-date checks.
-        manifest = defaultManifest()
+tasks.withType(Jar) {
+    manifest {
+        attributes 'Version': version
+        attributes 'Timestamp': new Date().toString()
+        attributes 'SCM-Revision': scmRevision
     }
 }
 
 task javadocJar(type: Jar, dependsOn: javadoc) {
     classifier = 'javadoc'
     from javadoc.destinationDir
-    doFirst {
-        // Timestamp changes on every build. By evaluating it later, won't needlessly fail up-to-date checks.
-        manifest = defaultManifest()
-    }
 }
 
 task publishJavadoc(type: Copy, dependsOn: javadoc) {
@@ -103,10 +78,6 @@ task publishJavadoc(type: Copy, dependsOn: javadoc) {
 task sourcesJar(type: Jar) {
     classifier = 'sources'
     from sourceSets.main.allSource
-    doFirst {
-        // Timestamp changes on every build. By evaluating it later, won't needlessly fail up-to-date checks.
-        manifest = defaultManifest()
-    }
 }
 
 artifacts {
@@ -167,10 +138,6 @@ uploadArchives {
     }
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Utilities
-
-// enable Gradle Wrapper support for bootstrapping with specific version
 task wrapper(type: Wrapper) {
     gradleVersion = '4.2'
 }
@@ -178,9 +145,6 @@ task wrapper(type: Wrapper) {
 String getProperty(String name, String defaultValue) {
     project.hasProperty(name) ? project.getProperty(name) : defaultValue
 }
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// IDE
 
 idea {
     module {
