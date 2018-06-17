@@ -21,8 +21,6 @@ apply plugin: 'idea'
 apply plugin: 'maven'
 apply plugin: 'signing'
 
-import org.gradle.api.artifacts.maven.MavenDeployment
-
 group = 'tech.huffman.re-retrying'
 version = '4.0.0-SNAPSHOT'
 sourceCompatibility = '1.8'
