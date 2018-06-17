@@ -136,8 +136,8 @@ uploadArchives {
     }
 }
 
-task wrapper(type: Wrapper) {
-    gradleVersion = '4.2'
+wrapper {
+    gradleVersion = '4.8'
 }
 
 String getProperty(String name, String defaultValue) {
