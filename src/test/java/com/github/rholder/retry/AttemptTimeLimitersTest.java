@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Robert Huffman
+ * copyright 2017-2018 Robert Huffman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class AttemptTimeLimitersTest {
 
