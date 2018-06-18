@@ -172,6 +172,7 @@ public class RetryerBuilder {
     /**
      * Configures the retryer to retry if the result satisfies the given predicate.
      *
+     * @param <T> The type of object tested by the predicate
      * @param resultPredicate a predicate applied to the result, and which causes the retryer
      *                        to retry if the predicate is satisfied
      * @return <code>this</code>
