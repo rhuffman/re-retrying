@@ -98,6 +98,8 @@ public final class Retryer {
             try {
                 T result = attemptTimeLimiter.call(callable);
                 attempt = new Attempt<>(result, attemptNumber, System.currentTimeMillis() - startTimeMillis);
+            } catch(InterruptedException e) {
+                throw e;
             } catch (Throwable t) {
                 attempt = new Attempt<>(t, attemptNumber, System.currentTimeMillis() - startTimeMillis);
             }
