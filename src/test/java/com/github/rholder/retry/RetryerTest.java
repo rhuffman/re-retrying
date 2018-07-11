@@ -142,33 +142,83 @@ class RetryerTest {
   @Test
   void testCallThatIsInterrupted() throws Exception {
     Retryer retryer = RetryerBuilder.newBuilder()
-            .retryIfException()
+            .retryIfRuntimeException()
             .withStopStrategy(StopStrategies.stopAfterAttempt(10))
             .build();
     Interrupter thrower = new Interrupter(4);
+    boolean interrupted = false;
     try {
       retryer.call(thrower);
+      fail("Should have thrown");
     } catch(InterruptedException ignored) {
+      interrupted = true;
+    } catch(Exception e) {
+      System.out.println(e);
     }
 
-    assertTrue(Thread.interrupted());
+    //noinspection ConstantConditions
+    assertTrue(interrupted);
     assertEquals(4, thrower.invocations);
   }
 
   @Test
   void testRunThatIsInterrupted() throws Exception {
     Retryer retryer = RetryerBuilder.newBuilder()
-            .retryIfException()
+            .retryIfRuntimeException()
             .withStopStrategy(StopStrategies.stopAfterAttempt(10))
             .build();
     Interrupter thrower = new Interrupter(4);
+    boolean interrupted = false;
     try {
       retryer.run(thrower);
+      fail("Should have thrown");
     } catch(InterruptedException ignored) {
+      interrupted = true;
     }
 
-    assertTrue(Thread.interrupted());
+    //noinspection ConstantConditions
+    assertTrue(interrupted);
     assertEquals(4, thrower.invocations);
+  }
+
+  @Test
+  public void testCallWhenBlockerIsInterrupted() throws Exception {
+    Retryer retryer = RetryerBuilder.newBuilder()
+        .retryIfException()
+        .withStopStrategy(StopStrategies.stopAfterAttempt(10))
+        .withBlockStrategy(new InterruptingBlockStrategy(3))
+        .build();
+    Thrower thrower = new Thrower(Exception.class, 5);
+    boolean interrupted = false;
+    try {
+      retryer.call(thrower);
+      fail("Should have thrown");
+    } catch (InterruptedException e) {
+      interrupted = true;
+    }
+    //noinspection ConstantConditions
+    assertTrue(interrupted);
+    assertEquals(3, thrower.invocations);
+  }
+
+  @Test
+  public void testRunWhenBlockerIsInterrupted() throws Exception {
+    Retryer retryer = RetryerBuilder.newBuilder()
+        .retryIfException()
+        .withStopStrategy(StopStrategies.stopAfterAttempt(10))
+        .withBlockStrategy(new InterruptingBlockStrategy(3))
+        .build();
+    Thrower thrower = new Thrower(Exception.class, 5);
+    boolean interrupted = false;
+    try {
+      retryer.run(thrower);
+      fail("Should have thrown");
+    } catch (InterruptedException e) {
+      interrupted = true;
+    }
+    //noinspection ConstantConditions
+    assertTrue(interrupted);
+    assertEquals(3, thrower.invocations);
   }
 
   private static Stream<Arguments> checkedAndUnchecked() {
@@ -187,6 +237,30 @@ class RetryerTest {
   }
 
   /**
+   * BlockStrategy that interrupts the thread
+   */
+  private class InterruptingBlockStrategy implements BlockStrategy {
+
+    private final int invocationToInterrupt;
+
+    private int currentInvocation;
+
+    InterruptingBlockStrategy(int invocationToInterrupt) {
+      this.invocationToInterrupt = invocationToInterrupt;
+    }
+
+    @Override
+    public void block(long sleepTime) throws InterruptedException {
+      ++currentInvocation;
+      if (currentInvocation == invocationToInterrupt) {
+        throw new InterruptedException("Block strategy interrupted itself");
+      } else {
+        Thread.sleep(sleepTime);
+      }
+    }
+  }
+
+  /**
    * Callable that throws an exception on a specified attempt (indexed starting with 1).
    * Calls before the interrupt attempt throw an Exception.
    */
@@ -201,19 +275,23 @@ class RetryerTest {
     }
 
     @Override
-    public Void call() {
+    public Void call() throws InterruptedException {
       invocations++;
       if (invocations == interruptAttempt) {
-        Thread.currentThread().interrupt();
-        return null;
+        throw new InterruptedException("Interrupted invocation " + invocations);
       } else {
-        throw new RuntimeException();
+        throw new RuntimeException("Throwing on invocaion " + invocations);
       }
     }
 
     @Override
     public void run() throws RuntimeException {
-      call();
+      try {
+        call();
+      } catch(InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new RuntimeException(e);
+      }
     }
 
   }
